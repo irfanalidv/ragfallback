@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include INSTALL_AND_RUN.md
+include requirements-dev.txt
+include pyproject.toml
+include pytest.ini
+recursive-include ragfallback *.py py.typed
+recursive-include examples *.py
+recursive-include tests *.py
+

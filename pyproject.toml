@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragfallback"
+version = "0.1.0"
+description = "RAG Fallback Strategies - Intelligent fallback mechanisms for RAG systems"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    {name = "Irfan Ali", email = "irfanali29@hotmail.com"}
+]
+keywords = ["rag", "retrieval", "llm", "fallback", "query-variations", "langchain"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.20",
+    "pydantic>=2.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+# Open-source options (no API keys required)
+ollama = ["langchain-community>=0.0.20"]  # For Ollama LLM
+huggingface = ["huggingface-hub>=0.16.0"]  # For HuggingFace Inference API (free tier)
+transformers = ["transformers>=4.30.0", "torch>=2.0.0"]  # For local HuggingFace models
+sentence-transformers = ["sentence-transformers>=2.2.0"]  # For HuggingFace embeddings
+faiss = ["faiss-cpu>=1.7.4"]  # FAISS vector store (local, free)
+chroma = ["chromadb>=0.4.0"]  # ChromaDB vector store (local, free)
+qdrant = ["qdrant-client>=1.7.0"]  # Qdrant (can run locally or cloud)
+
+# Paid options (require API keys)
+openai = ["langchain-openai>=0.0.5", "openai>=1.0.0"]  # OpenAI LLM & embeddings
+anthropic = ["langchain-anthropic>=0.1.0", "anthropic>=0.18.0"]  # Anthropic Claude
+pinecone = ["pinecone-client>=2.2.0"]  # Pinecone vector store (cloud, paid)
+weaviate = ["weaviate-client>=3.25.0"]  # Weaviate (can be self-hosted or cloud)
+cohere = ["cohere>=4.0.0"]  # Cohere LLM
+
+# Convenience groups
+open-source = [
+    "huggingface-hub>=0.16.0",  # HuggingFace Inference API (easiest, free tier)
+    "sentence-transformers>=2.2.0",
+    "faiss-cpu>=1.7.4",
+    "chromadb>=0.4.0",
+]
+paid = [
+    "langchain-openai>=0.0.5",
+    "openai>=1.0.0",
+    "langchain-anthropic>=0.1.0",
+    "anthropic>=0.18.0",
+    "pinecone-client>=2.2.0",
+]
+all = [
+    "sentence-transformers>=2.2.0",
+    "faiss-cpu>=1.7.4",
+    "chromadb>=0.4.0",
+    "qdrant-client>=1.7.0",
+    "weaviate-client>=3.25.0",
+    "pinecone-client>=2.2.0",
+    "langchain-openai>=0.0.5",
+    "openai>=1.0.0",
+    "langchain-anthropic>=0.1.0",
+    "anthropic>=0.18.0",
+    "cohere>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/irfanalidv/ragfallback"
+Documentation = "https://github.com/irfanalidv/ragfallback#readme"
+Repository = "https://github.com/irfanalidv/ragfallback"
+Issues = "https://github.com/irfanalidv/ragfallback/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ragfallback*"]
+
+[tool.setuptools.package-data]
+ragfallback = ["py.typed"]
