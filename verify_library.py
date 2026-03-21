@@ -171,8 +171,8 @@ def _test_example_syntax():
 def _test_version():
     import ragfallback
 
-    assert ragfallback.__version__ == "2.0.1", (
-        f"Expected '2.0.1', got '{ragfallback.__version__}'"
+    assert ragfallback.__version__ == "2.0.2", (
+        f"Expected '2.0.2', got '{ragfallback.__version__}'"
     )
     print(f"       version={ragfallback.__version__}")
 
@@ -190,7 +190,7 @@ check("ragfallback.evaluation (RAGEvaluator.evaluate() returns RAGScore with ove
 check("ragfallback.tracking (CostTracker.record_tokens, MetricsCollector.record_success)", _test_tracking)
 check("Factory + embeddings (create_open_source_embeddings → dim 384)", _test_embeddings)
 check("Example files syntax (compile all examples/*.py)", _test_example_syntax)
-check("Version == '2.0.1'", _test_version)
+check("Version == '2.0.2'", _test_version)
 
 print("=" * 70)
 passed = sum(1 for _, ok, _ in results if ok)

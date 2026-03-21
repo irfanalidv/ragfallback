@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragfallback"
-version = "2.0.1"
-description = "RAG Fallback Strategies - Intelligent fallback mechanisms for RAG systems"
+version = "2.0.2"
+description = "Prevents silent RAG failures — chunk quality, retrieval fallback, adaptive querying, and answer evaluation in one library."
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
