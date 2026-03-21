@@ -14,18 +14,18 @@
 
 ## What it prevents
 
-| #   | Real production failure                               | Module                                             | Example                   |
-| --- | ----------------------------------------------------- | -------------------------------------------------- | ------------------------- | --- |
-| 1   | Query mismatch → silent empty results                 | `AdaptiveRAGRetriever` + `QueryVariationsStrategy` | `uc6_adaptive_rag.py`     |
-| 2   | Embedding model switch corrupts index dimensions      | `EmbeddingGuard`                                   | `uc2_embedding_guard.py`  |
-| 3   | Bad chunks (too short, mid-sentence) poison retrieval | `ChunkQualityChecker`                              | `uc3_chunk_quality.py`    |
-| 4   | Retrieved chunks overflow LLM context window          | `ContextWindowGuard`                               | `uc4_context_window.py`   |
-| 5   | Keyword queries fail dense retrieval silently         | `SmartThresholdHybridRetriever`                    | `uc5_hybrid_failover.py`  |
-| 6   | Primary retriever outage returns empty, no fallback   | `FailoverRetriever`                                | `uc5_hybrid_failover.py`  |
-| 7   | Multi-step questions always fail single-shot RAG      | `MultiHopFallbackStrategy`                         | `uc6_multi_hop_demo.py`   |
-| 8   | Index serves stale data after document updates        | `StaleIndexDetector`                               | —                         |
-| 9   | Answer quality invisible in production                | `RAGEvaluator`                                     | `uc7_rag_evaluator.py`    |
-| 10  | Cross-boundary answers lost between adjacent chunks   | `OverlappingContextStitcher`                       | `uc8_context_stitcher.py` | ̋    |
+| #  | Real production failure                               | Module                                             | Example                   |
+|----|-------------------------------------------------------|----------------------------------------------------|---------------------------|
+| 1  | Query mismatch → silent empty results                 | `AdaptiveRAGRetriever` + `QueryVariationsStrategy` | `uc6_adaptive_rag.py`     |
+| 2  | Embedding model switch corrupts index dimensions      | `EmbeddingGuard`                                   | `uc2_embedding_guard.py`  |
+| 3  | Bad chunks (too short, mid-sentence) poison retrieval | `ChunkQualityChecker`                              | `uc3_chunk_quality.py`    |
+| 4  | Retrieved chunks overflow LLM context window          | `ContextWindowGuard`                               | `uc4_context_window.py`   |
+| 5  | Keyword queries fail dense retrieval silently         | `SmartThresholdHybridRetriever`                    | `uc5_hybrid_failover.py`  |
+| 6  | Primary retriever outage returns empty, no fallback   | `FailoverRetriever`                                | `uc5_hybrid_failover.py`  |
+| 7  | Multi-step questions always fail single-shot RAG      | `MultiHopFallbackStrategy`                         | `uc6_multi_hop_demo.py`   |
+| 8  | Index serves stale data after document updates        | `StaleIndexDetector`                               | —                         |
+| 9  | Answer quality invisible in production                | `RAGEvaluator`                                     | `uc7_rag_evaluator.py`    |
+| 10 | Cross-boundary answers lost between adjacent chunks   | `OverlappingContextStitcher`                       | `uc8_context_stitcher.py` |
 
 ---
 
