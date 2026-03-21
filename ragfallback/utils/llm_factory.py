@@ -1,7 +1,11 @@
 """Factory functions for creating LLMs (open-source and paid)."""
 
+import os
 from typing import Optional
+
 from langchain_core.language_models import BaseLanguageModel
+
+from ragfallback.utils.env import load_env, mistral_config_from_env
 
 
 def create_open_source_llm(
@@ -164,6 +168,66 @@ def create_huggingface_llm(
                 f"Error: {str(e)}. "
                 f"Try using use_inference_api=True for easier setup."
             )
+
+
+def create_mistral_llm(
+    model: Optional[str] = None,
+    temperature: float = 0,
+    api_key: Optional[str] = None,
+    load_dotenv: bool = True,
+) -> BaseLanguageModel:
+    """
+    Create a Mistral chat model (API). Uses ``MISTRAL_API_KEY`` and ``MISTRAL_MODEL``
+    from the environment by default.
+
+    Install: ``pip install langchain-mistralai`` (and ``python-dotenv`` to load ``.env``).
+
+    Args:
+        model: Override model id (default: ``MISTRAL_MODEL`` or ``mistral-small-latest``).
+        temperature: Sampling temperature.
+        api_key: Override API key (default: ``MISTRAL_API_KEY``).
+        load_dotenv: If True, call :func:`~ragfallback.utils.env.load_env` first.
+    """
+    if load_dotenv:
+        load_env()
+    key = api_key or os.environ.get("MISTRAL_API_KEY") or os.environ.get(
+        "MISTRAL_API_TOKEN"
+    )
+    if not key:
+        raise ValueError(
+            "Mistral API key missing. Set MISTRAL_API_KEY in your environment or .env "
+            "(see .env.example)."
+        )
+    mid = model or os.environ.get("MISTRAL_MODEL", "mistral-small-latest")
+    try:
+        from langchain_mistralai import ChatMistralAI
+    except ImportError as e:
+        raise ImportError(
+            "Mistral LLM requires langchain-mistralai. "
+            "Install with: pip install langchain-mistralai"
+        ) from e
+    return ChatMistralAI(model=mid, api_key=key, temperature=temperature)
+
+
+def create_llm_from_env(
+    temperature: float = 0,
+    load_dotenv: bool = True,
+) -> BaseLanguageModel:
+    """
+    Preferred LLM for apps using this repo's ``.env``: Mistral when ``MISTRAL_API_KEY`` is set.
+
+    Raises:
+        ValueError: if no Mistral key is available after loading ``.env``.
+    """
+    if load_dotenv:
+        load_env()
+    key, model = mistral_config_from_env()
+    if not key:
+        raise ValueError(
+            "MISTRAL_API_KEY not set. Add it to .env or the environment, or use "
+            "create_open_source_llm / create_huggingface_llm / create_openai_llm explicitly."
+        )
+    return create_mistral_llm(model=model, temperature=temperature, api_key=key, load_dotenv=False)
 
 
 def create_openai_llm(

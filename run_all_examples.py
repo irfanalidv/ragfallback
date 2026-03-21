@@ -26,12 +26,18 @@ def run_example(example_path):
             print(f"⚠️  Skipping {example_name} - no main guard")
             return False
         
-        # Try to run the example
+        # Run the example with the repo root on PYTHONPATH so the local
+        # dev version of ragfallback is used, not any installed release.
+        import os
+        env = os.environ.copy()
+        repo_root = str(Path(__file__).parent)
+        env["PYTHONPATH"] = repo_root + os.pathsep + env.get("PYTHONPATH", "")
         result = subprocess.run(
             [sys.executable, str(example_path)],
             capture_output=True,
             text=True,
-            timeout=300  # 5 minute timeout
+            timeout=300,  # 5 minute timeout
+            env=env,
         )
         
         if result.returncode == 0:
@@ -86,13 +92,31 @@ def run_all_examples():
     
     print(f"Found {len(example_files)} example file(s)\n")
     
+    # Scripts that need an external service or optional extra — skip with a reason.
+    SKIP_WITH_REASON: dict[str, str] = {
+        "qdrant_local_demo.py":             "requires Docker + Qdrant",
+        "uc5_hybrid_failover.py":           "requires ragfallback[hybrid]",
+        "uc6_multi_hop_demo.py":            "requires Ollama or LLM",
+        "uc6_adaptive_rag.py":              "requires Ollama or LLM",
+        "production_reliability_example.py": "requires Ollama or LLM",
+        "legal_document_analysis.py":       "requires ragfallback[real-data] + LLM",
+        "medical_research_synthesis.py":    "requires ragfallback[real-data] + LLM",
+        "financial_risk_analysis.py":       "requires ragfallback[real-data] + LLM",
+    }
+    # Internal helpers / non-runnable files (silently skipped, no output line).
+    SILENT_SKIP = {"_kb_common.py", "__init__.py"}
+
     results = []
     for example_file in example_files:
-        if example_file.name == "__init__.py":
+        name = example_file.name
+        if name in SILENT_SKIP:
             continue
-        
+        if name in SKIP_WITH_REASON:
+            print(f"\n⏭️  Skipping {name} ({SKIP_WITH_REASON[name]})")
+            continue
+
         success = run_example(example_file)
-        results.append((example_file.name, success))
+        results.append((name, success))
     
     # Summary
     print("\n" + "="*70)
@@ -119,4 +143,8 @@ def run_all_examples():
 
 if __name__ == "__main__":
     sys.exit(run_all_examples())
+
+
+
+
 

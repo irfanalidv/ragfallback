@@ -6,10 +6,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="ragfallback",
-    version="0.1.0",
+    version="2.0.0",
     author="Irfan Ali",
     author_email="irfanali29@hotmail.com",
-    description="RAG Fallback Strategies - Intelligent fallback mechanisms for RAG systems",
+    description="ragfallback — reliability layers for RAG: diagnostics, fallbacks, evaluation",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/irfanalidv/ragfallback",
@@ -51,11 +51,14 @@ setup(
         "pinecone": ["pinecone-client>=2.2.0"],
         "weaviate": ["weaviate-client>=3.25.0"],
         "cohere": ["cohere>=4.0.0"],
+        "mistral": ["langchain-mistralai>=0.2.0", "python-dotenv>=1.0.0"],
+        "hybrid": ["rank_bm25>=0.2.2"],
         "open-source": [
             "huggingface-hub>=0.16.0",
             "sentence-transformers>=2.2.0",
             "faiss-cpu>=1.7.4",
             "chromadb>=0.4.0",
+            "rank_bm25>=0.2.2",
         ],
         "paid": [
             "langchain-openai>=0.0.5",
@@ -63,9 +66,11 @@ setup(
             "langchain-anthropic>=0.1.0",
             "anthropic>=0.18.0",
             "pinecone-client>=2.2.0",
+            "langchain-mistralai>=0.2.0",
+            "python-dotenv>=1.0.0",
         ],
     },
-    keywords="rag retrieval llm fallback query-variations langchain",
+    keywords="rag retrieval llm fallback query-variations langchain bm25 hybrid-search",
     license="MIT",
     package_data={
         "ragfallback": ["py.typed"],

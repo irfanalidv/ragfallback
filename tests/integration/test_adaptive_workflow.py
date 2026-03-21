@@ -1,6 +1,8 @@
 """Integration tests for end-to-end RAG workflows."""
 
 import pytest
+
+pytestmark = pytest.mark.integration
 from ragfallback import AdaptiveRAGRetriever, CostTracker, MetricsCollector
 from ragfallback.strategies.query_variations import QueryVariationsStrategy
 

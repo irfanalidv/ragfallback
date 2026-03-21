@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragfallback"
-version = "0.1.0"
+version = "2.0.0"
 description = "RAG Fallback Strategies - Intelligent fallback mechanisms for RAG systems"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -12,7 +12,7 @@ license = "MIT"
 authors = [
     {name = "Irfan Ali", email = "irfanali29@hotmail.com"}
 ]
-keywords = ["rag", "retrieval", "llm", "fallback", "query-variations", "langchain"]
+keywords = ["rag", "retrieval", "llm", "fallback", "query-variations", "langchain", "bm25", "hybrid-search"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -35,7 +35,11 @@ dependencies = [
 [project.optional-dependencies]
 # Open-source options (no API keys required)
 ollama = ["langchain-community>=0.0.20"]  # For Ollama LLM
-huggingface = ["huggingface-hub>=0.16.0"]  # For HuggingFace Inference API (free tier)
+huggingface = [
+    "huggingface-hub>=0.16.0",
+    "sentence-transformers>=2.2.0",
+    "transformers>=4.30.0",
+]  # Local / HF embeddings + models (see docs/CLAUDE_DEV_INSTRUCTIONS_V2.md)
 transformers = ["transformers>=4.30.0", "torch>=2.0.0"]  # For local HuggingFace models
 sentence-transformers = ["sentence-transformers>=2.2.0"]  # For HuggingFace embeddings
 faiss = ["faiss-cpu>=1.7.4"]  # FAISS vector store (local, free)
@@ -48,13 +52,22 @@ anthropic = ["langchain-anthropic>=0.1.0", "anthropic>=0.18.0"]  # Anthropic Cla
 pinecone = ["pinecone-client>=2.2.0"]  # Pinecone vector store (cloud, paid)
 weaviate = ["weaviate-client>=3.25.0"]  # Weaviate (can be self-hosted or cloud)
 cohere = ["cohere>=4.0.0"]  # Cohere LLM
+mistral = [
+    "langchain-mistralai>=0.2.0",
+    "python-dotenv>=1.0.0",
+]  # MISTRAL_API_KEY + .env (ChatMistralAI)
+hybrid = ["rank_bm25>=0.2.2", "faiss-cpu>=1.7.4"]  # BM25 + FAISS for hybrid retriever
+real-data = ["datasets>=2.0.0"]  # Load public HuggingFace datasets (SQuAD, SciQ) for real demos
 
 # Convenience groups
 open-source = [
-    "huggingface-hub>=0.16.0",  # HuggingFace Inference API (easiest, free tier)
+    "huggingface-hub>=0.16.0",
     "sentence-transformers>=2.2.0",
     "faiss-cpu>=1.7.4",
     "chromadb>=0.4.0",
+    "qdrant-client>=1.7.0",
+    "rank_bm25>=0.2.2",
+    "weaviate-client>=3.25.0",
 ]
 paid = [
     "langchain-openai>=0.0.5",
@@ -62,18 +75,18 @@ paid = [
     "langchain-anthropic>=0.1.0",
     "anthropic>=0.18.0",
     "pinecone-client>=2.2.0",
+    "langchain-mistralai>=0.2.0",
+    "python-dotenv>=1.0.0",
 ]
 all = [
     "sentence-transformers>=2.2.0",
+    "transformers>=4.30.0",
+    "huggingface-hub>=0.16.0",
     "faiss-cpu>=1.7.4",
     "chromadb>=0.4.0",
     "qdrant-client>=1.7.0",
     "weaviate-client>=3.25.0",
-    "pinecone-client>=2.2.0",
-    "langchain-openai>=0.0.5",
-    "openai>=1.0.0",
-    "langchain-anthropic>=0.1.0",
-    "anthropic>=0.18.0",
+    "rank_bm25>=0.2.2",
     "cohere>=4.0.0",
 ]
 

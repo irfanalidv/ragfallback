@@ -7,28 +7,37 @@ from langchain_core.documents import Document
 @pytest.fixture(scope="session")
 def real_llm():
     """
-    Real LLM for testing - uses HuggingFace Inference API (free tier, no API key needed).
-    Falls back to Ollama if HuggingFace is unavailable.
+    Prefer Mistral when MISTRAL_API_KEY is set (.env supported via python-dotenv).
+    Otherwise HuggingFace Inference API, then Ollama.
     """
     try:
-        # Try HuggingFace Inference API first (no API key needed for public models)
+        from ragfallback.utils.llm_factory import create_mistral_llm, load_env
+
+        load_env()
+        return create_mistral_llm(load_dotenv=False, temperature=0)
+    except Exception:
+        pass
+    try:
         from ragfallback.utils.llm_factory import create_huggingface_llm
+
         return create_huggingface_llm(
-            model_id="google/flan-t5-base",  # Small, fast model for testing
+            model_id="google/flan-t5-base",
             use_inference_api=True,
-            temperature=0
+            temperature=0,
         )
     except Exception:
-        # Fallback to Ollama if available
         try:
             from ragfallback.utils.llm_factory import create_open_source_llm
+
             return create_open_source_llm(
                 model="llama3",
                 provider="ollama",
-                temperature=0
+                temperature=0,
             )
         except Exception:
-            pytest.skip("No LLM available for testing. Install Ollama or use HuggingFace Inference API.")
+            pytest.skip(
+                "No LLM: set MISTRAL_API_KEY, or install HF/Ollama fallbacks."
+            )
 
 
 @pytest.fixture(scope="session")

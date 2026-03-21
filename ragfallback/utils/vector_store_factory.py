@@ -35,7 +35,7 @@ def create_faiss_vector_store(
             # Try to load existing index
             try:
                 return FAISS.load_local(persist_directory, embeddings)
-            except:
+            except Exception:
                 pass
         
         vector_store = FAISS.from_documents(documents, embeddings)
@@ -160,4 +160,12 @@ def create_pinecone_vector_store(
         raise ImportError(
             "Pinecone not installed. Install with: pip install pinecone-client"
         )
+
+
+
+
+
+
+
+
 

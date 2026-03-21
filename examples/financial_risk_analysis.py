@@ -1,169 +1,103 @@
 """
-Financial Risk Analysis - Production-Grade Use Case
-
-This example demonstrates ragfallback for financial analysis with:
-- Multi-source data synthesis
-- Risk assessment queries
-- Regulatory compliance checking
-- High-stakes decision support
+USE CASE: UC-6 — Adaptive RAG (financial news)
+===============================================
+Real problem : Regulatory and risk queries need retrieval + rewrite when phrasing diverges.
+Goal         : Demonstrate AdaptiveRAGRetriever on real financial news sentences.
+Module       : ragfallback.core.AdaptiveRAGRetriever
+Vector DB    : FAISS (local)
+Dataset      : nickmuchi/financial-classification (financial news, Apache 2.0)
+               https://huggingface.co/datasets/nickmuchi/financial-classification
+Install      : pip install ragfallback[faiss,huggingface,real-data]
+Env vars     : NONE required for retrieval demo; HF_TOKEN optional for LLM
 """
 
-from ragfallback import AdaptiveRAGRetriever, CostTracker, MetricsCollector
-from ragfallback.utils import (
-    create_huggingface_llm,
-    create_open_source_embeddings,
-    create_faiss_vector_store
-)
-from langchain.docstore.document import Document
+from __future__ import annotations
+
+import sys
+import os
+
+_repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(_repo_root, "ragfallback")) and _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+
+_examples_dir = os.path.dirname(os.path.abspath(__file__))
+if _examples_dir not in sys.path:
+    sys.path.insert(0, _examples_dir)
 
 
-def main():
-    """Financial risk analysis with regulatory compliance."""
-    print("="*80)
-    print("ragfallback - Financial Risk Analysis (Production Use Case)")
-    print("="*80)
-    print("\nScenario: Financial institution risk assessment")
-    print("Challenges: Regulatory compliance, multi-factor analysis, risk quantification\n")
-    
-    # Financial and regulatory content
+def main() -> None:
+    print("=" * 70)
+    print("ragfallback — Financial News RAG Demo")
+    print("Dataset: nickmuchi/financial-classification (Apache 2.0)")
+    print("=" * 70)
+
+    try:
+        from datasets import load_dataset
+    except ImportError:
+        print("SKIP: pip install ragfallback[real-data] to use real financial data")
+        sys.exit(0)
+
+    from langchain_core.documents import Document
+
+    print("\nLoading financial news dataset...")
+    try:
+        ds = load_dataset("nickmuchi/financial-classification", split="train")
+    except Exception as exc:
+        print(f"SKIP: Could not load dataset — {exc}")
+        sys.exit(0)
+
     documents = [
         Document(
-            page_content="BASEL III REQUIREMENTS: Tier 1 capital ratio must be at least 6%. Total capital ratio minimum 8%. Leverage ratio minimum 3%. Banks must maintain capital conservation buffer of 2.5%. Countercyclical buffer ranges from 0-2.5% based on credit growth. Non-compliance triggers restrictions on distributions.",
-            metadata={"source": "basel_iii_regulations.pdf", "type": "regulation", "priority": "high"}
-        ),
-        Document(
-            page_content="RISK ASSESSMENT FRAMEWORK: Credit risk assessed using PD (Probability of Default), LGD (Loss Given Default), and EAD (Exposure at Default). Market risk measured via VaR (Value at Risk) with 99% confidence, 10-day holding period. Operational risk includes fraud, system failures, legal risks. Liquidity risk measured via LCR (Liquidity Coverage Ratio) minimum 100%.",
-            metadata={"source": "risk_framework.pdf", "type": "policy", "priority": "high"}
-        ),
-        Document(
-            page_content="STRESS TESTING REQUIREMENTS: Annual stress tests required for banks with assets over $50B. Scenarios include: severe recession (GDP -8%, unemployment 12%), market crash (equity -50%, credit spreads +300bps), and combined scenario. Capital adequacy must be maintained under all scenarios. Results reported to regulators quarterly.",
-            metadata={"source": "stress_testing_requirements.pdf", "type": "regulation", "priority": "high"}
-        ),
-        Document(
-            page_content="CREDIT RISK MITIGATION: Collateral reduces exposure by haircut percentage: government bonds 0%, corporate bonds 15-50%, equities 15-50%, real estate 15-40%. Guarantees from eligible guarantors reduce risk weight. Credit derivatives can transfer risk but require proper documentation. Netting agreements reduce exposure for offsetting positions.",
-            metadata={"source": "credit_mitigation.pdf", "type": "policy", "priority": "medium"}
-        ),
-        Document(
-            page_content="OPERATIONAL RISK EVENTS: High-severity events (>$10M loss) require immediate reporting to board and regulators within 24 hours. Root cause analysis must be completed within 30 days. Remediation plans required within 60 days. Annual operational risk loss data collection mandatory. Key risk indicators monitored monthly.",
-            metadata={"source": "operational_risk_policy.pdf", "type": "policy", "priority": "high"}
-        ),
-        Document(
-            page_content="LIQUIDITY RISK MANAGEMENT: LCR (Liquidity Coverage Ratio) requires high-quality liquid assets to cover net cash outflows over 30 days. NSFR (Net Stable Funding Ratio) ensures stable funding over 1 year. Contingency funding plan must be tested quarterly. Intraday liquidity monitoring required. Central bank facilities available as backstop.",
-            metadata={"source": "liquidity_management.pdf", "type": "policy", "priority": "high"}
-        ),
-        Document(
-            page_content="REGULATORY REPORTING: Call reports filed quarterly with detailed balance sheet, income statement, risk metrics. FFIEC 031 for banks, FFIEC 041 for smaller institutions. Data must be accurate and submitted within 30 days of quarter end. Errors subject to penalties. Automated reporting systems recommended for large institutions.",
-            metadata={"source": "regulatory_reporting.pdf", "type": "regulation", "priority": "high"}
-        ),
-        Document(
-            page_content="CAPITAL PLANNING: Capital plans must cover 9-quarter horizon, updated annually. Scenarios include baseline, adverse, and severely adverse. Capital actions (dividends, buybacks) must be justified. CCAR (Comprehensive Capital Analysis and Review) required for large banks. Failure results in restrictions on capital distributions.",
-            metadata={"source": "capital_planning.pdf", "type": "regulation", "priority": "high"}
-        ),
-    ]
-    
-    print(f"📚 Loaded {len(documents)} financial and regulatory documents\n")
-    
-    # Setup with strict requirements
-    embeddings = create_open_source_embeddings(model_name="all-MiniLM-L6-v2")
-    vector_store = create_faiss_vector_store(documents=documents, embeddings=embeddings)
-    llm = create_huggingface_llm(
-        model_id="mistralai/Mistral-7B-Instruct-v0.1",
-        use_inference_api=True,
-        temperature=0,
-        max_length=1024
-    )
-    
-    # Budget tracking for production use
-    cost_tracker = CostTracker(budget=100.0)  # $100 budget for analysis session
-    metrics = MetricsCollector()
-    
-    # Very high confidence for financial decisions
-    retriever = AdaptiveRAGRetriever(
-        vector_store=vector_store,
-        llm=llm,
-        embedding_model=embeddings,
-        fallback_strategy="query_variations",
-        cost_tracker=cost_tracker,
-        metrics_collector=metrics,
-        max_attempts=5,
-        min_confidence=0.88  # High threshold for financial accuracy
-    )
-    print("✅ Financial analysis system ready\n")
-    
-    # Complex financial risk queries
-    risk_queries = [
-        {
-            "question": "What are the capital requirements I need to meet?",
-            "description": "Regulatory compliance query"
-        },
-        {
-            "question": "How do I calculate my risk exposure?",
-            "description": "Risk quantification query"
-        },
-        {
-            "question": "What happens if I fail a stress test?",
-            "description": "Consequence analysis"
-        },
-        {
-            "question": "How can I reduce my credit risk?",
-            "description": "Risk mitigation strategies"
-        },
-        {
-            "question": "What reporting requirements do I have?",
-            "description": "Regulatory compliance"
-        },
-    ]
-    
-    print("="*80)
-    print("Financial Risk Analysis Queries")
-    print("="*80)
-    
-    for i, query_info in enumerate(risk_queries, 1):
-        question = query_info["question"]
-        description = query_info["description"]
-        
-        print(f"\n{'─'*80}")
-        print(f"Analysis Query {i}: {description}")
-        print(f"Question: {question}")
-        print(f"{'─'*80}")
-        
-        result = retriever.query_with_fallback(
-            question=question,
-            return_intermediate_steps=True,
-            enforce_budget=True  # Stop if budget exceeded
+            page_content=row["sentence"],
+            metadata={"source": "financial_news", "label": str(row.get("label", ""))},
         )
-        
-        print(f"\n✅ Risk Analysis:")
-        print(f"   {result.answer}")
-        print(f"\n📊 Confidence: {result.confidence:.2%}")
-        print(f"📄 Source: {result.source}")
-        print(f"💰 Cost: ${result.cost:.4f}")
-        print(f"🔄 Attempts: {result.attempts}")
-        
-        if result.intermediate_steps:
-            print(f"\n🔄 Query Refinement:")
-            for step in result.intermediate_steps[:3]:  # Show first 3
-                print(f"   Attempt {step['attempt']}: '{step['query'][:65]}...'")
-        
-        if result.confidence < 0.88:
-            print(f"\n⚠️  WARNING: Lower confidence. Regulatory review recommended.")
-    
-    # Summary
-    print("\n" + "="*80)
-    print("Financial Analysis Summary")
-    print("="*80)
-    stats = metrics.get_stats()
-    report = cost_tracker.get_report()
-    
-    print(f"Total Queries: {stats['total_queries']}")
-    print(f"Success Rate: {stats['success_rate']:.2%}")
-    print(f"Average Confidence: {stats['avg_confidence']:.2f}")
-    print(f"Total Cost: ${report['total_cost']:.4f}")
-    print(f"Budget Remaining: ${report['budget_remaining']:.4f}")
-    print(f"\n💡 Financial Disclaimer: This is for analysis purposes only.")
-    print(f"   All financial decisions should be reviewed by qualified professionals.")
+        for row in ds
+        if row.get("sentence") and len(row["sentence"]) > 50
+    ][:80]
+
+    if not documents:
+        print("SKIP: No usable sentences loaded from dataset")
+        sys.exit(0)
+
+    print(f"  Loaded {len(documents)} real financial news sentences")
+    print(f"  Example: {documents[0].page_content[:100]}...")
+
+    from ragfallback.diagnostics import ChunkQualityChecker
+
+    checker = ChunkQualityChecker(min_chars=40)
+    report = checker.check(documents)
+    print(f"\nChunkQualityChecker: {report.n_chunks} sentences  Violations: {len(report.violations)}")
+
+    import _kb_common
+
+    emb = _kb_common.get_embeddings()
+
+    try:
+        from langchain_community.vectorstores import FAISS
+    except ImportError:
+        print("SKIP: pip install ragfallback[faiss] for vector store")
+        sys.exit(0)
+
+    print("\nBuilding FAISS index...")
+    vs = FAISS.from_documents(documents, emb)
+    print(f"  Indexed {len(documents)} real sentences")
+
+    print("\nRetrieval demo (no LLM required)...")
+    questions = [
+        "What happened to company earnings?",
+        "What is the outlook for revenue growth?",
+        "How did the stock perform?",
+    ]
+    retriever = vs.as_retriever(search_kwargs={"k": 3})
+    for q in questions:
+        hits = retriever.get_relevant_documents(q)
+        best = hits[0].page_content[:90] if hits else "—"
+        print(f"  Q: {q}")
+        print(f"     → {best}...")
+
+    print("\n✅ Financial RAG demo complete (no paid API keys used).")
+    print("   To add LLM generation: set HF_TOKEN env var and pass an LLM to AdaptiveRAGRetriever.")
 
 
 if __name__ == "__main__":
     main()
-

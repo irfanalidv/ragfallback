@@ -24,7 +24,6 @@ class MetricsCollector:
     """
     
     def __init__(self):
-        """Initialize MetricsCollector."""
         self.metrics: List[QueryMetrics] = []
         self.logger = logging.getLogger(__name__)
     

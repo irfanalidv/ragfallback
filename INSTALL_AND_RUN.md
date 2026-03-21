@@ -1,102 +1,98 @@
-# Install and Run ragfallback
+# Installing and Running ragfallback
 
-## Quick Start
+## Install
 
 ```bash
-# 1. Install library
-pip install -e .
+# Core only (no vector store, no embeddings)
+pip install ragfallback
 
-# 2. Verify installation
-python verify_library.py
+# Golden path — runs all UC-1–UC-10 examples with no API keys
+pip install ragfallback[chroma,huggingface]
 
-# 3. Run all examples
-python run_all_examples.py
+# FAISS instead of Chroma
+pip install ragfallback[faiss,huggingface]
+
+# Add BM25 hybrid retrieval (UC-5)
+pip install ragfallback[hybrid,huggingface]
+
+# Real public dataset examples (financial, legal, medical, SQuAD)
+pip install ragfallback[real-data]
+
+# Everything open-source at once
+pip install ragfallback[chroma,faiss,huggingface,hybrid,real-data]
 ```
 
-## Installation
-
-### Basic Installation
+## Run examples — no API keys needed
 
 ```bash
-pip install -e .
+# End-to-end on 200 real Wikipedia passages (SQuAD dataset)
+python examples/real_data_demo.py          # requires: [chroma,huggingface,real-data]
+
+# Diagnostics
+python examples/uc1_retrieval_health.py    # retrieval smoke test (ChromaDB)
+python examples/uc2_embedding_guard.py     # dimension / NaN guard
+python examples/uc3_chunk_quality.py       # chunk quality check
+python examples/uc4_context_window.py      # context budget trimming
+python examples/uc7_rag_evaluator.py       # answer quality scoring
+
+# Retrieval patterns
+python examples/uc8_context_stitcher.py    # merge adjacent chunks (ChromaDB)
+python examples/uc9_embedding_probe.py     # domain mismatch heuristic
+python examples/uc10_metadata_sanitizer.py # metadata normalization (ChromaDB)
+
+# Domain examples (real public datasets — requires [real-data])
+python examples/financial_risk_analysis.py  # nickmuchi/financial-classification
+python examples/legal_document_analysis.py  # theatticusproject/cuad-qa
+python examples/medical_research_synthesis.py  # qiaojin/PubMedQA
 ```
 
-### With Optional Dependencies
+## Run with local LLM (Ollama — no paid keys)
 
 ```bash
-# Open-source components (recommended)
-pip install -e .[sentence-transformers,faiss]
+# Install Ollama: https://ollama.com
+ollama pull llama3
 
-# Or install manually
-pip install sentence-transformers faiss-cpu huggingface-hub
+# Full AdaptiveRAGRetriever demo with LLM generation
+python examples/chroma_real_kb_demo.py
+
+# Multi-hop strategy demo (requires LLM)
+python examples/uc6_multi_hop_demo.py
 ```
 
-## Verification
+## Examples that require setup
+
+| Example | Requires | Install |
+|---------|----------|---------|
+| `uc5_hybrid_failover.py` | BM25 | `pip install ragfallback[hybrid]` |
+| `uc6_multi_hop_demo.py` | Local LLM | `ollama pull llama3` |
+| `qdrant_local_demo.py` | Qdrant | `docker run -p 6333:6333 qdrant/qdrant` |
+
+## Run all examples
 
 ```bash
-# Verify library installation and core functionality
-python verify_library.py
+python run_all_examples.py   # skips examples needing Ollama/API keys, prints reasons
 ```
 
-**Expected:** All 6 tests pass ✅
-
-## Run Examples
-
-### Run All Examples
+## Verify installation
 
 ```bash
-python run_all_examples.py
+python verify_library.py     # 9/9 checks — tests every subpackage
 ```
 
-### Run Individual Examples
-
-**Simple Examples:**
+## Run tests
 
 ```bash
-python examples/python_docs_example.py
-python examples/tech_support_example.py
-```
-
-**Advanced Examples:**
-
-```bash
-python examples/legal_document_analysis.py
-python examples/medical_research_synthesis.py
-python examples/financial_risk_analysis.py
-python examples/multi_domain_synthesis.py
-python examples/complete_example.py
-```
-
-## Run Tests
-
-```bash
-# Install test dependencies
 pip install -r requirements-dev.txt
-
-# Run unit tests
-pytest tests/ -v
-
-# Run with coverage
-pytest --cov=ragfallback --cov-report=html
+pytest tests/unit/ -v        # 81 unit tests — no network, no API keys
+pytest tests/integration/ -m integration -v   # 7 integration tests (needs sentence-transformers + chromadb)
 ```
 
-## Library Structure
+## Development install
 
+```bash
+git clone https://github.com/irfanalidv/ragfallback
+cd ragfallback
+pip install -e ".[chroma,faiss,huggingface,hybrid,real-data]"
+pip install -r requirements-dev.txt
+pytest tests/unit/ -v
 ```
-ragfallback/
-├── ragfallback/          # Core library
-├── examples/            # 11 example files
-├── tests/               # Unit tests
-├── verify_library.py    # Installation verification
-├── run_all_examples.py  # Run all examples
-├── pyproject.toml       # Package config
-├── requirements-dev.txt # Dev dependencies
-└── README.md           # Documentation
-```
-
-## Success Criteria
-
-✅ `python verify_library.py` passes all tests  
-✅ `pytest tests/` passes all unit tests  
-✅ At least 3 examples run successfully  
-✅ Library can be imported: `from ragfallback import AdaptiveRAGRetriever`

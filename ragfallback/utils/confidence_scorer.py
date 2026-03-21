@@ -35,14 +35,6 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
         method: str = "llm",
         prompt_template: Optional[str] = None,
     ):
-        """
-        Initialize ConfidenceScorer.
-
-        Args:
-            llm: Language model for LLM-based scoring
-            method: Scoring method ("llm" or "embedding_similarity")
-            prompt_template: Custom prompt template
-        """
         self.llm = llm
         self.method = method
         self.prompt_template = prompt_template or self.DEFAULT_PROMPT_TEMPLATE
@@ -100,7 +92,7 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
 
             return 0.5  # Default if parsing fails
         except Exception as e:
-            self.logger.error(f"Error scoring with LLM: {e}")
+            self.logger.warning("LLM confidence scoring failed, using heuristic: %s", e)
             return self._score_heuristic(question, answer, documents)
 
     def _score_with_embedding(

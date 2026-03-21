@@ -1,118 +1,130 @@
 # Contributing to ragfallback
 
-Thank you for considering contributing to ragfallback! This document provides guidelines for contributing.
+Thank you for improving the library. This guide keeps contributions consistent with the architecture.
 
-## Development Setup
+## Quick start
 
 ```bash
-# Clone the repository
-git clone https://github.com/irfanalidv/ragfallback.git
+git clone https://github.com/irfanalidv/ragfallback
 cd ragfallback
-
-# Install in development mode
-pip install -e .[sentence-transformers,faiss]
-
-# Install development dependencies
+pip install -e ".[chroma,faiss,huggingface,hybrid]"
 pip install -r requirements-dev.txt
+pytest tests/unit/ -v   # must pass before any PR
 ```
 
-## Running Tests
+## Adding a new module
+
+Every new module needs:
+
+- The correct subpackage (see table below)
+- `from __future__ import annotations` at the top of every file
+- Docstrings that explain *why*, not *what* — the code itself shows what
+- `logging` instead of `print()` — library code never prints
+- Unit tests in `tests/unit/test_{name}.py`
+- An example file in `examples/` with a header block documenting the real problem, dataset, and install command
+- `__all__` updated in the subpackage `__init__.py`
+
+## Which subpackage?
+
+| Your feature does… | Goes in |
+|---------------------|---------|
+| Runs before/during indexing | `ragfallback/diagnostics/` |
+| Changes how retrieval works | `ragfallback/retrieval/` |
+| Controls query retry logic | `ragfallback/strategies/` |
+| Scores or observes after generation | `ragfallback/evaluation/` |
+| Creates LLMs/embeddings/vector stores | `ragfallback/utils/` (factory only) |
+
+## Coding standards (non-negotiable)
+
+```python
+# Every library file starts like this:
+from __future__ import annotations
+
+import logging
+from typing import List, Optional
+
+logger = logging.getLogger(__name__)      # not print()
+
+class MyNewChecker:
+    """One-line summary.
+
+    Longer description if needed.
+
+    Example::
+
+        checker = MyNewChecker(threshold=0.8)
+        report = checker.check(docs)
+        print(report.summary())
+    """
+
+    def __init__(self, threshold: float = 0.8) -> None:
+        """
+        Args:
+            threshold: Minimum score to pass. Must be in [0, 1].
+
+        Raises:
+            ValueError: If threshold is outside [0, 1].
+        """
+        if not 0.0 <= threshold <= 1.0:
+            raise ValueError(
+                f"threshold must be in [0, 1], got {threshold}. "
+                "Pass threshold=0.8 for standard use."
+            )
+        self.threshold = threshold
+```
+
+## Use cases implemented
+
+Each UC maps to one module and one example file.
+
+| UC | Module | Status |
+|----|--------|--------|
+| UC-1 | `ragfallback.diagnostics.RetrievalHealthCheck` | ✅ done |
+| UC-2 | `ragfallback.diagnostics.EmbeddingGuard` | ✅ done |
+| UC-3 | `ragfallback.diagnostics.ChunkQualityChecker` | ✅ done |
+| UC-4 | `ragfallback.diagnostics.ContextWindowGuard` | ✅ done |
+| UC-5 | `ragfallback.retrieval.SmartThresholdHybridRetriever` | ✅ done |
+| UC-6 | `ragfallback.core.AdaptiveRAGRetriever` | ✅ done |
+| UC-7 | `ragfallback.evaluation.RAGEvaluator` | ✅ done |
+
+## PR checklist
+
+- [ ] `pytest tests/unit/ -v` passes (all existing tests + new ones for your module)
+- [ ] New module has type hints on all public methods
+- [ ] No `print()` in library code — use `logging`
+- [ ] No paid API keys in default paths
+- [ ] `__all__` updated in subpackage `__init__.py`
+- [ ] `CHANGELOG.md` `[Unreleased]` section updated with your addition
+- [ ] Example file documents the real problem, dataset, and install command in its header block
+
+## Running the full test suite
 
 ```bash
-# Run all tests
-pytest tests/ -v
+# Unit tests only (fast, no external deps)
+pytest tests/unit/ -v
 
-# Run with coverage
-pytest --cov=ragfallback --cov-report=html tests/
+# Integration tests (requires chromadb + sentence-transformers)
+pytest tests/integration/ -m integration -v
 
-# Run verification
-python verify_library.py
+# Both
+make test-all
+
+# Run example scripts (skips ones needing Ollama/Docker/paid keys)
+python run_all_examples.py
 ```
 
-## Code Style
+## Import rules
 
-- Follow PEP 8 style guidelines
-- Use type hints for function parameters and return values
-- Write docstrings for all public functions and classes
-- Keep functions focused and single-purpose
+```python
+# ✅ Correct: root exports (the 4 curated shortcuts)
+from ragfallback import AdaptiveRAGRetriever, CostTracker
 
-## Pull Request Process
+# ✅ Correct: subpackage imports for everything else
+from ragfallback.diagnostics import ChunkQualityChecker, EmbeddingGuard
+from ragfallback.retrieval import SmartThresholdHybridRetriever, FailoverRetriever
+from ragfallback.strategies import MultiHopFallbackStrategy
+from ragfallback.evaluation import RAGEvaluator
 
-1. **Fork the repository** and create your branch from `main`
-2. **Make your changes** with clear, descriptive commits
-3. **Add tests** for new functionality
-4. **Update documentation** including README if needed
-5. **Run tests** to ensure everything passes
-6. **Submit a pull request** with a clear description
-
-## Commit Message Format
-
+# ❌ Wrong: don't add new symbols to ragfallback/__init__.py
+# unless they are genuinely the most-used entry points
 ```
-<type>: <subject>
-
-<body>
-```
-
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `test`: Adding or updating tests
-- `refactor`: Code refactoring
-- `chore`: Maintenance tasks
-
-Example:
-```
-feat: Add semantic expansion fallback strategy
-
-Implements a new fallback strategy that expands queries
-using semantic similarity to improve retrieval.
-```
-
-## Adding New Features
-
-### Adding a New Fallback Strategy
-
-1. Create a new file in `ragfallback/strategies/`
-2. Inherit from `FallbackStrategy` base class
-3. Implement the `generate_queries()` method
-4. Add tests in `tests/`
-5. Add example in `examples/`
-6. Update README
-
-### Adding Support for New LLM/Vector Store
-
-1. Add factory function in appropriate file:
-   - `ragfallback/utils/llm_factory.py` for LLMs
-   - `ragfallback/utils/vector_store_factory.py` for vector stores
-   - `ragfallback/utils/embedding_factory.py` for embeddings
-2. Add optional dependency in `pyproject.toml`
-3. Add example demonstrating usage
-4. Update README integration section
-
-## Testing Guidelines
-
-- Write unit tests for all new functions
-- Add integration tests for new features
-- Ensure tests are independent and can run in any order
-- Use descriptive test names: `test_<what>_<condition>_<expected>`
-
-## Documentation
-
-- Update README.md for new features
-- Add docstrings with examples
-- Update CHANGELOG.md
-- Add examples for complex features
-
-## Questions?
-
-Open an issue for:
-- Bug reports
-- Feature requests
-- Questions about usage
-- Discussion about improvements
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
-
