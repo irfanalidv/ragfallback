@@ -99,7 +99,7 @@ def main() -> None:
     scores = []
 
     for i, probe in enumerate(probes, 1):
-        retrieved = retriever.get_relevant_documents(probe["question"])
+        retrieved = retriever.invoke(probe["question"])
         contexts = [d.page_content for d in retrieved]
         # Extractive RAG: use the best-retrieved context as the answer.
         # This tests whether retrieval found the relevant abstract.

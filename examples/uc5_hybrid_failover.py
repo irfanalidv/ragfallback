@@ -47,7 +47,7 @@ def demo_hybrid_bm25_fallback(docs, vs) -> None:
     print(f"\nQuery: '{query}'")
     print("(vector threshold is deliberately strict → BM25 path will activate)\n")
 
-    docs_out = hybrid.get_relevant_documents(query)
+    docs_out = hybrid.invoke(query)
     print(f"Results: {len(docs_out)} doc(s) retrieved")
     for i, d in enumerate(docs_out, 1):
         source = d.metadata.get("ragfallback_retrieval_source", "unknown")
@@ -73,7 +73,7 @@ def demo_failover_on_empty(vs) -> None:
 
     query = "billing refund"
     print(f"\nQuery: '{query}'  (primary always returns 0 docs)")
-    docs_out = fb.get_relevant_documents(query)
+    docs_out = fb.invoke(query)
     print(f"Results: {len(docs_out)} doc(s) from fallback")
     for d in docs_out:
         print(f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "
@@ -94,7 +94,7 @@ def demo_failover_on_exception(vs) -> None:
 
     query = "API authentication"
     print(f"\nQuery: '{query}'  (primary raises ConnectionError)")
-    docs_out = fb.get_relevant_documents(query)
+    docs_out = fb.invoke(query)
     print(f"Results: {len(docs_out)} doc(s) from fallback")
     for d in docs_out:
         print(f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "
@@ -113,7 +113,7 @@ def demo_failover_min_results(vs) -> None:
 
     query = "refund policy"
     print(f"\nQuery: '{query}'  (primary limited to k=1; min_results=3 → fallback)")
-    docs_out = fb.get_relevant_documents(query)
+    docs_out = fb.invoke(query)
     print(f"Results: {len(docs_out)} doc(s)  (fallback returned more)")
     for d in docs_out:
         print(f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "

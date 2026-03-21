@@ -74,7 +74,7 @@ def test_query_variations_strategy_integration(real_llm, real_vector_store, real
     retriever = real_vector_store.as_retriever(search_kwargs={"k": 2})
     
     for query in queries[:2]:  # Test first 2 queries
-        docs = retriever.get_relevant_documents(query)
+        docs = retriever.invoke(query)
         assert len(docs) >= 0  # May or may not find documents
         if docs:
             assert all(hasattr(doc, 'page_content') for doc in docs)
@@ -88,7 +88,7 @@ def test_confidence_scoring_integration(real_llm, real_vector_store, real_embedd
     
     # Get documents from vector store
     retriever = real_vector_store.as_retriever(search_kwargs={"k": 3})
-    docs = retriever.get_relevant_documents("What is the revenue?")
+    docs = retriever.invoke("What is the revenue?")
     
     if docs:
         # Generate answer using LLM

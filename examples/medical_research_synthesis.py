@@ -96,7 +96,7 @@ def main() -> None:
     questions = [test_question, "What are the side effects?", "What does the study conclude?"]
     retriever = vs.as_retriever(search_kwargs={"k": 3})
     for q in questions[:2]:
-        hits = retriever.get_relevant_documents(q)
+        hits = retriever.invoke(q)
         best = hits[0].page_content[:90] if hits else "—"
         print(f"  Q: {q[:60]}...")
         print(f"     → {best}...")

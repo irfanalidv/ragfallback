@@ -31,7 +31,7 @@ class FailoverRetriever(BaseRetriever):
             fallback=local_faiss_retriever,
             min_results=1,
         )
-        docs = fb.get_relevant_documents("billing refund policy")
+        docs = fb.invoke("billing refund policy")
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

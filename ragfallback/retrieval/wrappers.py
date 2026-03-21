@@ -28,6 +28,5 @@ class RetrieverAsVectorStore:
     # Optional: some code paths call similarity_search directly — not supported here.
     def similarity_search(self, query: str, k: int = 4, **kwargs: Any) -> List[Document]:
         r = self._retriever
-        if hasattr(r, "invoke"):
-            return r.invoke(query)[:k]
-        return r.get_relevant_documents(query)[:k]
+        invoke = getattr(r, "invoke", None)
+        return (invoke(query) if invoke is not None else r.get_relevant_documents(query))[:k]

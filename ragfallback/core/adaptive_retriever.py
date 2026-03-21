@@ -279,7 +279,8 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         try:
             search_kwargs = self._build_search_kwargs(context)
             retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
-            return retriever.get_relevant_documents(query)
+            invoke = getattr(retriever, "invoke", None)
+            return invoke(query) if invoke is not None else retriever.get_relevant_documents(query)
         except Exception as e:
             if self.logger:
                 self.logger.error("error retrieving documents: %s", e)
