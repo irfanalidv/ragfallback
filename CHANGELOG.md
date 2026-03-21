@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-03-22
+
+### Fixed
+- Replace deprecated `get_relevant_documents()` with `invoke()` across library source, examples, and tests — fixes compatibility with LangChain 0.2+.
+- Prefer `langchain-huggingface` over deprecated `langchain-community` embeddings import; falls back gracefully on older installs.
+- Probe HuggingFace and Ollama LLMs in the test fixture before returning them, so CI skips cleanly instead of failing when no LLM is reachable.
+
 ## [2.0.0] - 2026-03-21
 
 ### Breaking

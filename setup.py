@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="ragfallback",
-    version="2.0.0",
+    version="2.0.1",
     author="Irfan Ali",
     author_email="irfanali29@hotmail.com",
     description="ragfallback — reliability layers for RAG: diagnostics, fallbacks, evaluation",
