@@ -8,7 +8,7 @@
 
 **ragfallback** prevents silent RAG failures across the full pipeline — from bad chunks at ingest, through retrieval outages at runtime, to invisible answer quality degradation in production.
 
-![ragfallback architecture](ragfallback_architecture.png?v=3)
+![ragfallback architecture](ragfallback_arch.png)
 
 ---
 
