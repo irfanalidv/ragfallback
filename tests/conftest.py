@@ -17,8 +17,9 @@ def real_llm():
         return create_mistral_llm(load_dotenv=False, temperature=0)
     except Exception:
         pass
+    from langchain_core.messages import HumanMessage
+
     try:
-        from langchain_core.messages import HumanMessage
         from ragfallback.utils.llm_factory import create_huggingface_llm
 
         llm = create_huggingface_llm(
@@ -29,18 +30,18 @@ def real_llm():
         llm.invoke([HumanMessage(content="hi")])
         return llm
     except Exception:
-        try:
-            from ragfallback.utils.llm_factory import create_open_source_llm
+        pass
 
-            return create_open_source_llm(
-                model="llama3",
-                provider="ollama",
-                temperature=0,
-            )
-        except Exception:
-            pytest.skip(
-                "No LLM: set MISTRAL_API_KEY, or install HF/Ollama fallbacks."
-            )
+    try:
+        from ragfallback.utils.llm_factory import create_open_source_llm
+
+        llm = create_open_source_llm(model="llama3", provider="ollama", temperature=0)
+        llm.invoke([HumanMessage(content="hi")])
+        return llm
+    except Exception:
+        pass
+
+    pytest.skip("No LLM available: set MISTRAL_API_KEY, or run Ollama locally.")
 
 
 @pytest.fixture(scope="session")
