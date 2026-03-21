@@ -22,17 +22,19 @@ def create_open_source_embeddings(
         >>> embeddings = create_open_source_embeddings()
     """
     try:
-        from langchain_community.embeddings import HuggingFaceEmbeddings
-        
-        return HuggingFaceEmbeddings(
-            model_name=model_name,
-            model_kwargs={'device': 'cpu'}  # Use 'cuda' if GPU available
-        )
+        from langchain_huggingface import HuggingFaceEmbeddings
     except ImportError:
-        raise ImportError(
-            "HuggingFace embeddings not installed. "
-            "Install with: pip install sentence-transformers"
-        )
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+        except ImportError:
+            raise ImportError(
+                "HuggingFace embeddings not installed. "
+                "Install with: pip install ragfallback[huggingface]"
+            )
+    return HuggingFaceEmbeddings(
+        model_name=model_name,
+        model_kwargs={"device": "cpu"},
+    )
 
 
 def create_ollama_embeddings(
