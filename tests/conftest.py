@@ -18,13 +18,16 @@ def real_llm():
     except Exception:
         pass
     try:
+        from langchain_core.messages import HumanMessage
         from ragfallback.utils.llm_factory import create_huggingface_llm
 
-        return create_huggingface_llm(
+        llm = create_huggingface_llm(
             model_id="google/flan-t5-base",
             use_inference_api=True,
             temperature=0,
         )
+        llm.invoke([HumanMessage(content="hi")])
+        return llm
     except Exception:
         try:
             from ragfallback.utils.llm_factory import create_open_source_llm
