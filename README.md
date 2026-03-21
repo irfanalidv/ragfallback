@@ -36,7 +36,6 @@ pip install ragfallback[chroma,huggingface,real-data]
 ```
 
 ```python
-# pip install ragfallback[chroma,huggingface,real-data]
 from datasets import load_dataset
 from langchain_core.documents import Document
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -257,16 +256,62 @@ retriever = FailoverRetriever(primary=chroma_retriever, fallback=faiss_retriever
 
 ---
 
+### `ragfallback.core`
+
+**AdaptiveRAGRetriever** — wraps a vector store with retry logic and pluggable fallback strategies. On each attempt it retrieves, scores confidence, and either returns the answer or tries the next strategy.
+
+```python
+from ragfallback import AdaptiveRAGRetriever
+from ragfallback.strategies import QueryVariationsStrategy
+
+retriever = AdaptiveRAGRetriever(
+    vector_store=store,
+    llm=llm,                                      # any LangChain LLM
+    strategies=[QueryVariationsStrategy(num_variations=2)],
+    confidence_threshold=0.7,
+    max_attempts=3,
+)
+result = retriever.retrieve("What is the refund policy?")
+print(result.answer, result.confidence, result.attempts_used)
+```
+
+Requires `MISTRAL_API_KEY` (or any LangChain-compatible LLM passed via `llm=`).
+
+---
+
 ### `ragfallback.strategies`
 
-**QueryVariationsStrategy** — LLM rewrites the original query into N variations to broaden retrieval recall.
+**QueryVariationsStrategy** — LLM rewrites the original query into N variations to broaden retrieval recall. Requires an LLM.
 
-**MultiHopFallbackStrategy** — decomposes complex multi-step questions into sub-questions, retrieves each independently, then synthesises a final answer.
+**MultiHopFallbackStrategy** — decomposes complex multi-step questions into sub-questions, retrieves each independently, then synthesises a final answer. Requires an LLM.
 
 ```python
 from ragfallback.strategies import MultiHopFallbackStrategy
 result = MultiHopFallbackStrategy(max_hops=3).run(question, retriever, llm)
 print(result.final_answer, result.total_hops)
+```
+
+---
+
+### `ragfallback.tracking`
+
+**CostTracker** — token cost ledger for a RAG session. Records spend per operation, enforces an optional budget ceiling, and surfaces a report at the end.
+
+```python
+from ragfallback import CostTracker
+tracker = CostTracker(budget_usd=1.0)
+tracker.record(model="mistral-small-latest", input_tokens=500, output_tokens=200)
+print(tracker.get_report())   # total cost, budget remaining
+```
+
+**MetricsCollector** — records latency, success/failure counts, and confidence scores across retrieval attempts.
+
+```python
+from ragfallback import MetricsCollector
+metrics = MetricsCollector()
+# passed automatically to AdaptiveRAGRetriever; or record manually:
+metrics.record_attempt(success=True, latency_ms=120, confidence=0.85)
+print(metrics.get_stats())
 ```
 
 ---
@@ -294,7 +339,7 @@ print(ev.batch_summary([score]))
 | UC-3: chunk quality       | SQuAD Wikipedia                                 | `python examples/uc3_chunk_quality.py`          |
 | UC-4: context window      | sample KB                                       | `python examples/uc4_context_window.py`         |
 | UC-5: hybrid + failover   | FAISS + BM25                                    | `python examples/uc5_hybrid_failover.py`        |
-| UC-6: adaptive RAG        | SQuAD Wikipedia (mock or Ollama LLM)            | `python examples/uc6_adaptive_rag.py`           |
+| UC-6: adaptive RAG        | SQuAD Wikipedia (needs `MISTRAL_API_KEY` or Ollama) | `python examples/uc6_adaptive_rag.py`       |
 | UC-7: RAG evaluator       | PubMedQA (MIT) — real medical Q&A               | `python examples/uc7_rag_evaluator.py`          |
 | UC-8: context stitcher    | ChromaDB + HR chunks                            | `python examples/uc8_context_stitcher.py`       |
 | UC-9: embedding probe     | — (similarity check)                            | `python examples/uc9_embedding_probe.py`        |
