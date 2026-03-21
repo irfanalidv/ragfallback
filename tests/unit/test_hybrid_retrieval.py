@@ -83,7 +83,7 @@ def test_bm25_fallback_when_dense_threshold_filters_all() -> None:
         fetch_k=5,
         final_k=3,
     )
-    docs = r.get_relevant_documents("exact keyword query")
+    docs = r.invoke("exact keyword query")
     assert len(docs) == 1
     assert docs[0].page_content == "BM25 keyword hit"
     assert docs[0].metadata["ragfallback_retrieval_source"] == "bm25_fallback"
@@ -101,7 +101,7 @@ def test_bm25_not_called_when_dense_returns_results() -> None:
         fetch_k=5,
         final_k=3,
     )
-    docs = r.get_relevant_documents("query")
+    docs = r.invoke("query")
     assert len(docs) == 1
     assert docs[0].page_content == "dense hit"
     assert docs[0].metadata["ragfallback_retrieval_source"] == "vector_threshold"
@@ -119,7 +119,7 @@ def test_safe_empty_when_no_bm25_and_dense_fails() -> None:
         fetch_k=5,
         final_k=3,
     )
-    assert r.get_relevant_documents("q") == []
+    assert r.invoke("q") == []
 
 
 # ---------------------------------------------------------------------------
@@ -147,8 +147,8 @@ def test_from_documents_raises_import_error_without_rank_bm25() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_smart_hybrid_exposes_get_relevant_documents() -> None:
-    """SmartThresholdHybridRetriever must expose get_relevant_documents() as a drop-in."""
+def test_smart_hybrid_exposes_invoke() -> None:
+    """SmartThresholdHybridRetriever must expose invoke() as the public retrieval API."""
     store = _make_dense_store([("result", 0.1)])
     r = SmartThresholdHybridRetriever(
         vectorstore=store,
@@ -157,8 +157,8 @@ def test_smart_hybrid_exposes_get_relevant_documents() -> None:
         fetch_k=5,
         final_k=3,
     )
-    assert callable(getattr(r, "get_relevant_documents", None))
-    docs = r.get_relevant_documents("test query")
+    assert callable(getattr(r, "invoke", None))
+    docs = r.invoke("test query")
     assert isinstance(docs, list)
 
 
@@ -172,7 +172,7 @@ def test_failover_uses_fallback_when_primary_returns_empty() -> None:
     primary = _make_retriever_with_invoke([])
     fallback = _make_retriever_with_invoke(["fallback doc"])
     fb = FailoverRetriever(primary=primary, fallback=fallback, min_results=1)
-    docs = fb.get_relevant_documents("query")
+    docs = fb.invoke("query")
     assert len(docs) == 1
     assert docs[0].page_content == "fallback doc"
     assert docs[0].metadata["ragfallback_retrieval_source"] == "secondary_failover"
@@ -184,7 +184,7 @@ def test_failover_uses_fallback_when_primary_raises() -> None:
     primary.invoke.side_effect = ConnectionError("host unreachable")
     fallback = _make_retriever_with_invoke(["backup result"])
     fb = FailoverRetriever(primary=primary, fallback=fallback, log_errors=False)
-    docs = fb.get_relevant_documents("query")
+    docs = fb.invoke("query")
     assert docs[0].page_content == "backup result"
     assert docs[0].metadata["ragfallback_retrieval_source"] == "secondary_failover"
 
@@ -194,7 +194,7 @@ def test_failover_uses_primary_when_results_meet_min() -> None:
     primary = _make_retriever_with_invoke(["primary result"])
     fallback = MagicMock()  # must not be called
     fb = FailoverRetriever(primary=primary, fallback=fallback, min_results=1)
-    docs = fb.get_relevant_documents("query")
+    docs = fb.invoke("query")
     assert docs[0].metadata["ragfallback_retrieval_source"] == "primary"
     fallback.invoke.assert_not_called()
 
@@ -204,7 +204,7 @@ def test_failover_min_results_threshold() -> None:
     primary = _make_retriever_with_invoke(["only one"])
     fallback = _make_retriever_with_invoke(["fallback a", "fallback b"])
     fb = FailoverRetriever(primary=primary, fallback=fallback, min_results=2)
-    docs = fb.get_relevant_documents("query")
+    docs = fb.invoke("query")
     assert all(d.metadata["ragfallback_retrieval_source"] == "secondary_failover" for d in docs)
 
 
@@ -218,7 +218,7 @@ def test_failover_secondary_alias_still_works() -> None:
     primary = _make_retriever_with_invoke([])
     secondary = _make_retriever_with_invoke(["legacy backup"])
     fb = FailoverRetriever(primary=primary, secondary=secondary, log_errors=False)
-    docs = fb.get_relevant_documents("query")
+    docs = fb.invoke("query")
     assert docs[0].page_content == "legacy backup"
 
 
@@ -233,13 +233,13 @@ def test_failover_requires_fallback_or_secondary() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_failover_exposes_get_relevant_documents() -> None:
-    """FailoverRetriever must expose get_relevant_documents() as a drop-in retriever."""
+def test_failover_exposes_invoke() -> None:
+    """FailoverRetriever must expose invoke() as the public retrieval API."""
     primary = _make_retriever_with_invoke(["doc"])
     fallback = _make_retriever_with_invoke([])
     fb = FailoverRetriever(primary=primary, fallback=fallback)
-    assert callable(getattr(fb, "get_relevant_documents", None))
-    docs = fb.get_relevant_documents("query")
+    assert callable(getattr(fb, "invoke", None))
+    docs = fb.invoke("query")
     assert isinstance(docs, list)
 
 
@@ -257,5 +257,5 @@ def test_failover_returns_empty_when_both_fail() -> None:
     fb = FailoverRetriever(
         primary=primary, fallback=fallback, log_errors=False
     )
-    docs = fb.get_relevant_documents("query")
+    docs = fb.invoke("query")
     assert docs == []
