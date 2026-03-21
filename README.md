@@ -14,18 +14,18 @@
 
 ## What it prevents
 
-| # | Real production failure | Module | Example |
-|---|------------------------|--------|---------|
-| 1 | Query mismatch → silent empty results | `AdaptiveRAGRetriever` + `QueryVariationsStrategy` | `uc6_adaptive_rag.py` |
-| 2 | Embedding model switch corrupts index dimensions | `EmbeddingGuard` | `uc2_embedding_guard.py` |
-| 3 | Bad chunks (too short, mid-sentence) poison retrieval | `ChunkQualityChecker` | `uc3_chunk_quality.py` |
-| 4 | Retrieved chunks overflow LLM context window | `ContextWindowGuard` | `uc4_context_window.py` |
-| 5 | Keyword queries fail dense retrieval silently | `SmartThresholdHybridRetriever` | `uc5_hybrid_failover.py` |
-| 6 | Primary retriever outage returns empty, no fallback | `FailoverRetriever` | `uc5_hybrid_failover.py` |
-| 7 | Multi-step questions always fail single-shot RAG | `MultiHopFallbackStrategy` | `uc6_multi_hop_demo.py` |
-| 8 | Index serves stale data after document updates | `StaleIndexDetector` | — |
-| 9 | Answer quality invisible in production | `RAGEvaluator` | `uc7_rag_evaluator.py` |
-| 10 | Cross-boundary answers lost between adjacent chunks | `OverlappingContextStitcher` | `uc8_context_stitcher.py` |
+| #   | Real production failure                               | Module                                             | Example                   |
+| --- | ----------------------------------------------------- | -------------------------------------------------- | ------------------------- | --- |
+| 1   | Query mismatch → silent empty results                 | `AdaptiveRAGRetriever` + `QueryVariationsStrategy` | `uc6_adaptive_rag.py`     |
+| 2   | Embedding model switch corrupts index dimensions      | `EmbeddingGuard`                                   | `uc2_embedding_guard.py`  |
+| 3   | Bad chunks (too short, mid-sentence) poison retrieval | `ChunkQualityChecker`                              | `uc3_chunk_quality.py`    |
+| 4   | Retrieved chunks overflow LLM context window          | `ContextWindowGuard`                               | `uc4_context_window.py`   |
+| 5   | Keyword queries fail dense retrieval silently         | `SmartThresholdHybridRetriever`                    | `uc5_hybrid_failover.py`  |
+| 6   | Primary retriever outage returns empty, no fallback   | `FailoverRetriever`                                | `uc5_hybrid_failover.py`  |
+| 7   | Multi-step questions always fail single-shot RAG      | `MultiHopFallbackStrategy`                         | `uc6_multi_hop_demo.py`   |
+| 8   | Index serves stale data after document updates        | `StaleIndexDetector`                               | —                         |
+| 9   | Answer quality invisible in production                | `RAGEvaluator`                                     | `uc7_rag_evaluator.py`    |
+| 10  | Cross-boundary answers lost between adjacent chunks   | `OverlappingContextStitcher`                       | `uc8_context_stitcher.py` | ̋    |
 
 ---
 
@@ -101,6 +101,25 @@ Retrieval hit rate: 100%
  Overall            : 84.00%
  Pass (>=70%)       : True
 ```
+
+---
+
+## Configuration
+
+Most features work with no API key — chunk checking, embedding validation, hybrid retrieval, and evaluation all run locally.
+
+LLM-dependent features (`AdaptiveRAGRetriever`, `QueryVariationsStrategy`, `MultiHopFallbackStrategy`) need a model. Copy `.env.example` to `.env` and fill in:
+
+```bash
+cp .env.example .env
+```
+
+```
+MISTRAL_API_KEY=your_key_here
+MISTRAL_MODEL=mistral-small-latest   # default, override if needed
+```
+
+Get a free Mistral key at [console.mistral.ai](https://console.mistral.ai). The library also supports any LangChain-compatible LLM — pass it directly to `AdaptiveRAGRetriever(llm=your_llm)`.
 
 ---
 
@@ -268,22 +287,22 @@ print(ev.batch_summary([score]))
 
 ## Examples — real public datasets
 
-| Example | Dataset | Command |
-|---------|---------|---------|
-| UC-1: retrieval health | SQuAD Wikipedia | `python examples/uc1_retrieval_health.py` |
-| UC-2: embedding guard | — (dimension check) | `python examples/uc2_embedding_guard.py` |
-| UC-3: chunk quality | SQuAD Wikipedia | `python examples/uc3_chunk_quality.py` |
-| UC-4: context window | sample KB | `python examples/uc4_context_window.py` |
-| UC-5: hybrid + failover | FAISS + BM25 | `python examples/uc5_hybrid_failover.py` |
-| UC-6: adaptive RAG | SQuAD Wikipedia (mock or Ollama LLM) | `python examples/uc6_adaptive_rag.py` |
-| UC-7: RAG evaluator | PubMedQA (MIT) — real medical Q&A | `python examples/uc7_rag_evaluator.py` |
-| UC-8: context stitcher | ChromaDB + HR chunks | `python examples/uc8_context_stitcher.py` |
-| UC-9: embedding probe | — (similarity check) | `python examples/uc9_embedding_probe.py` |
-| UC-10: metadata sanitizer | ChromaDB dirty docs | `python examples/uc10_metadata_sanitizer.py` |
-| End-to-end on SQuAD | SQuAD Wikipedia (CC BY-SA 4.0) | `python examples/real_data_demo.py` |
-| Financial news RAG | nickmuchi/financial-classification (Apache 2.0) | `python examples/financial_risk_analysis.py` |
-| Legal contract RAG | theatticusproject/cuad-qa (CC BY 4.0) | `python examples/legal_document_analysis.py` |
-| Medical abstract RAG | qiaojin/PubMedQA (MIT) | `python examples/medical_research_synthesis.py` |
+| Example                   | Dataset                                         | Command                                         |
+| ------------------------- | ----------------------------------------------- | ----------------------------------------------- |
+| UC-1: retrieval health    | SQuAD Wikipedia                                 | `python examples/uc1_retrieval_health.py`       |
+| UC-2: embedding guard     | — (dimension check)                             | `python examples/uc2_embedding_guard.py`        |
+| UC-3: chunk quality       | SQuAD Wikipedia                                 | `python examples/uc3_chunk_quality.py`          |
+| UC-4: context window      | sample KB                                       | `python examples/uc4_context_window.py`         |
+| UC-5: hybrid + failover   | FAISS + BM25                                    | `python examples/uc5_hybrid_failover.py`        |
+| UC-6: adaptive RAG        | SQuAD Wikipedia (mock or Ollama LLM)            | `python examples/uc6_adaptive_rag.py`           |
+| UC-7: RAG evaluator       | PubMedQA (MIT) — real medical Q&A               | `python examples/uc7_rag_evaluator.py`          |
+| UC-8: context stitcher    | ChromaDB + HR chunks                            | `python examples/uc8_context_stitcher.py`       |
+| UC-9: embedding probe     | — (similarity check)                            | `python examples/uc9_embedding_probe.py`        |
+| UC-10: metadata sanitizer | ChromaDB dirty docs                             | `python examples/uc10_metadata_sanitizer.py`    |
+| End-to-end on SQuAD       | SQuAD Wikipedia (CC BY-SA 4.0)                  | `python examples/real_data_demo.py`             |
+| Financial news RAG        | nickmuchi/financial-classification (Apache 2.0) | `python examples/financial_risk_analysis.py`    |
+| Legal contract RAG        | theatticusproject/cuad-qa (CC BY 4.0)           | `python examples/legal_document_analysis.py`    |
+| Medical abstract RAG      | qiaojin/PubMedQA (MIT)                          | `python examples/medical_research_synthesis.py` |
 
 ---
 
@@ -323,14 +342,14 @@ pip install ragfallback[hybrid]                      # adds BM25 (rank_bm25)
 pip install ragfallback[real-data]                   # real dataset examples (HuggingFace datasets)
 ```
 
-| Extra | Installs |
-|-------|----------|
-| `chroma` | chromadb |
-| `faiss` | faiss-cpu |
+| Extra         | Installs                               |
+| ------------- | -------------------------------------- |
+| `chroma`      | chromadb                               |
+| `faiss`       | faiss-cpu                              |
 | `huggingface` | sentence-transformers, huggingface-hub |
-| `hybrid` | rank_bm25, langchain-community |
-| `real-data` | datasets |
-| `openai` | langchain-openai, openai |
+| `hybrid`      | rank_bm25, langchain-community         |
+| `real-data`   | datasets                               |
+| `openai`      | langchain-openai, openai               |
 
 ---
 
