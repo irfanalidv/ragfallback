@@ -26,6 +26,8 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Run unit tests
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
         run: pytest tests/unit/ -v --tb=short
 
       - name: Upload coverage
