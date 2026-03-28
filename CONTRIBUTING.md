@@ -86,6 +86,9 @@ Each UC maps to one module and one example file.
 | UC-5 | `ragfallback.retrieval.SmartThresholdHybridRetriever` | ✅ done |
 | UC-6 | `ragfallback.core.AdaptiveRAGRetriever` | ✅ done |
 | UC-7 | `ragfallback.evaluation.RAGEvaluator` | ✅ done |
+| UC-8 | `ragfallback.diagnostics.OverlappingContextStitcher` | ✅ done |
+| UC-9 | `ragfallback.diagnostics.EmbeddingQualityProbe` | ✅ done |
+| UC-10 | `ragfallback.diagnostics.sanitize_documents` | ✅ done |
 
 ## PR checklist
 
