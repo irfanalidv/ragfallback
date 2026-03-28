@@ -5,6 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/ragfallback)](https://pypi.org/project/ragfallback/)
 [![Downloads](https://static.pepy.tech/badge/ragfallback)](https://pepy.tech/project/ragfallback)
 [![Tests](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml/badge.svg)](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/irfanalidv/ragfallback/blob/main/ragfallback_colab.ipynb)
 
 **ragfallback** prevents silent RAG failures across the full pipeline — from bad chunks at ingest, through retrieval outages at runtime, to invisible answer quality degradation in production.
 
