@@ -11,11 +11,12 @@ from ragfallback.tracking.metrics import MetricsCollector
 
 
 def recall_at_k(retrieved_ids: Sequence[str], relevant_ids: Set[str], k: int) -> float:
+    """Fraction of distinct relevant documents that appear in the first ``k`` retrieved IDs."""
     if not relevant_ids:
         return 0.0
-    top = list(retrieved_ids)[:k]
-    hits = sum(1 for rid in top if rid in relevant_ids)
-    return hits / len(relevant_ids)
+    top_k = list(retrieved_ids)[:k]
+    found = {rid for rid in top_k if rid in relevant_ids}
+    return len(found) / len(relevant_ids)
 
 
 def dcg_at_k(relevance_scores: Sequence[float], k: int) -> float:

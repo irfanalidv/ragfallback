@@ -1,0 +1,352 @@
+[
+  {
+    "query": "Which NFL team represented the AFC at Super Bowl 50?",
+    "ground_truth": "Denver Broncos",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "Which NFL team represented the NFC at Super Bowl 50?",
+    "ground_truth": "Carolina Panthers",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "Where did Super Bowl 50 take place?",
+    "ground_truth": "Santa Clara, California",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "Which NFL team won Super Bowl 50?",
+    "ground_truth": "Denver Broncos",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What color was used to emphasize the 50th anniversary of the Super Bowl?",
+    "ground_truth": "gold",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What was the theme of Super Bowl 50?",
+    "ground_truth": "\"golden anniversary\"",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What day was the game played on?",
+    "ground_truth": "February 7, 2016",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What is the AFC short for?",
+    "ground_truth": "American Football Conference",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What was the theme of Super Bowl 50?",
+    "ground_truth": "\"golden anniversary\"",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What does AFC stand for?",
+    "ground_truth": "American Football Conference",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What day was the Super Bowl played on?",
+    "ground_truth": "February 7, 2016",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "Who won Super Bowl 50?",
+    "ground_truth": "Denver Broncos",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What venue did Super Bowl 50 take place in?",
+    "ground_truth": "Levi's Stadium",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What city did Super Bowl 50 take place in?",
+    "ground_truth": "Santa Clara",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "If Roman numerals were used, what would Super Bowl 50 have been called?",
+    "ground_truth": "Super Bowl L",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "Super Bowl 50 decided the NFL champion for what season?",
+    "ground_truth": "2015",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What year did the Denver Broncos secure a Super Bowl title for the third time?",
+    "ground_truth": "2015",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What city did Super Bowl 50 take place in?",
+    "ground_truth": "Santa Clara",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What stadium did Super Bowl 50 take place in?",
+    "ground_truth": "Levi's Stadium",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What was the final score of Super Bowl 50?",
+    "ground_truth": "24–10",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What month, day and year did Super Bowl 50 take place?",
+    "ground_truth": "February 7, 2016",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What year was Super Bowl 50?",
+    "ground_truth": "2015",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What team was the AFC champion?",
+    "ground_truth": "Denver Broncos",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "What team was the NFC champion?",
+    "ground_truth": "Carolina Panthers",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "Who won Super Bowl 50?",
+    "ground_truth": "Denver Broncos",
+    "relevant_doc_ids": [
+      "squad_5afd2aee"
+    ]
+  },
+  {
+    "query": "Compounds that are capable of accepting electrons, such as o 2 or f2, are called what?",
+    "ground_truth": "oxidants",
+    "relevant_doc_ids": [
+      "sciq_d36ea9dd"
+    ]
+  },
+  {
+    "query": "What term in biotechnology means a genetically exact copy of an organism?",
+    "ground_truth": "clone",
+    "relevant_doc_ids": [
+      "sciq_ca5c0575"
+    ]
+  },
+  {
+    "query": "Vertebrata are characterized by the presence of what?",
+    "ground_truth": "backbone",
+    "relevant_doc_ids": [
+      "sciq_e97e74f0"
+    ]
+  },
+  {
+    "query": "What is the height above or below sea level called?",
+    "ground_truth": "elevation",
+    "relevant_doc_ids": [
+      "sciq_08fc6589"
+    ]
+  },
+  {
+    "query": "Ice cores, varves and what else indicate the environmental conditions at the time of their creation?",
+    "ground_truth": "tree rings",
+    "relevant_doc_ids": [
+      "sciq_a5e559f3"
+    ]
+  },
+  {
+    "query": "What chemical signals in plants control different processes?",
+    "ground_truth": "plant hormones",
+    "relevant_doc_ids": [
+      "sciq_68a015c7"
+    ]
+  },
+  {
+    "query": "Meiosis is part of the process of gametogenesis, which is the production of what?",
+    "ground_truth": "sperm and eggs",
+    "relevant_doc_ids": [
+      "sciq_276d62ca"
+    ]
+  },
+  {
+    "query": "Which type of tree is dominant in temperate forests?",
+    "ground_truth": "deciduous",
+    "relevant_doc_ids": [
+      "sciq_055611c2"
+    ]
+  },
+  {
+    "query": "What kind of viscosity is found in long-chain hydrocarbons?",
+    "ground_truth": "highly viscous",
+    "relevant_doc_ids": [
+      "sciq_a52c1fa2"
+    ]
+  },
+  {
+    "query": "Ionic compounds have strong electrostatic attractions between oppositely charged ions in this?",
+    "ground_truth": "regular array",
+    "relevant_doc_ids": [
+      "sciq_bc6bde3b"
+    ]
+  },
+  {
+    "query": "About how tall can mid-ocean ridges be?",
+    "ground_truth": "about 2 km",
+    "relevant_doc_ids": [
+      "sciq_338526b7"
+    ]
+  },
+  {
+    "query": "What are by far the most common type of invertebrate?",
+    "ground_truth": "insects",
+    "relevant_doc_ids": [
+      "sciq_bfe1544e"
+    ]
+  },
+  {
+    "query": "What do waves deposit to form sandbars and barrier islands?",
+    "ground_truth": "sediments",
+    "relevant_doc_ids": [
+      "sciq_160b2ed6"
+    ]
+  },
+  {
+    "query": "Penis, testes, and epididymis are organs in what system?",
+    "ground_truth": "male reproductive system",
+    "relevant_doc_ids": [
+      "sciq_821a6910"
+    ]
+  },
+  {
+    "query": "Only about one percent of plants have lost what ability, turning them into consumers and even predators, instead of producers?",
+    "ground_truth": "photosynthesis",
+    "relevant_doc_ids": [
+      "sciq_f6c26fe0"
+    ]
+  },
+  {
+    "query": "How does a neon light produce visible light?",
+    "ground_truth": "electroluminescence",
+    "relevant_doc_ids": [
+      "sciq_a114fe82"
+    ]
+  },
+  {
+    "query": "The bird ancestor that lived in trees developed what feature commonly associated with birds?",
+    "ground_truth": "wings",
+    "relevant_doc_ids": [
+      "sciq_6e902128"
+    ]
+  },
+  {
+    "query": "What do most living things use to make atp from glucose?",
+    "ground_truth": "oxygen",
+    "relevant_doc_ids": [
+      "sciq_58c71032"
+    ]
+  },
+  {
+    "query": "What are the two most common silicates?",
+    "ground_truth": "feldspar and quartz",
+    "relevant_doc_ids": [
+      "sciq_5c59dc61"
+    ]
+  },
+  {
+    "query": "What term means the amount of water vapor in the air?",
+    "ground_truth": "humidity",
+    "relevant_doc_ids": [
+      "sciq_dc12793f"
+    ]
+  },
+  {
+    "query": "Paracrine signals move by what method through the extracellular matrix?",
+    "ground_truth": "diffusion",
+    "relevant_doc_ids": [
+      "sciq_a4de6d7e"
+    ]
+  },
+  {
+    "query": "Presence of a cell wall, large central vacuole, and organelles called plastids distinguish what type of cell?",
+    "ground_truth": "plant",
+    "relevant_doc_ids": [
+      "sciq_c6910334"
+    ]
+  },
+  {
+    "query": "What happens when mammals raise their hair with tiny muscles in the skin?",
+    "ground_truth": "goosebumps",
+    "relevant_doc_ids": [
+      "sciq_85f0cd67"
+    ]
+  },
+  {
+    "query": "What are people with osteoporosis at increased risk of?",
+    "ground_truth": "bone fractures",
+    "relevant_doc_ids": [
+      "sciq_7f4f0bd5"
+    ]
+  },
+  {
+    "query": "Where is energy stored in a chemical substance?",
+    "ground_truth": "between atoms",
+    "relevant_doc_ids": [
+      "sciq_4fb7eecc"
+    ]
+  }
+]

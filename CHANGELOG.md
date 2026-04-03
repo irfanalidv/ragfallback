@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-04-03
+
+### Added
+
+**`ragfallback/mlops/` — MLOps evaluation layer** (`pip install ragfallback[mlops]`)
+
+- `RagasHook` — wraps RAGAS evaluation (faithfulness, answer relevance, context
+  precision, context recall) as a native ragfallback hook. Degrades gracefully to
+  heuristic evaluation if ragas is not installed — no crash, logged warning only.
+- `RagasReport` — structured dataclass: all 4 RAGAS scores, `fallback_mode` flag,
+  timestamp, raw output dict.
+- `GoldenRunner` — async-native eval runner. Loads a golden dataset from JSON or
+  `list[dict]`, runs `AdaptiveRAGRetriever` for each sample via `asyncio.gather`,
+  tracks per-sample latency, fallback_triggered flag, and retrieved doc IDs.
+  Computes recall@3, recall@5, P95 latency, mean latency, fallback rate.
+- `GoldenReport` — structured dataclass with all `GoldenRunner` outputs.
+- `BaselineRegistry` — JSON-backed metric store per dataset. `compare_or_fail()`
+  raises `RegressionError` if any quality metric drops > threshold (default 5%)
+  or latency P95 spikes > `latency_threshold` (default 12%). `update()` saves
+  new baseline after a passing run.
+- `RegressionError` — names which metrics regressed, old/new values, and delta.
+- `QuerySimulator` — generates adversarial query mixes from a base query set:
+  `short_keyword` (first 2 content words), `long_nl` (expand with instructions),
+  `ambiguous` (strip proper nouns), `out_of_domain` (inject unrelated topic).
+  `simulate_unhappy_paths()` produces all 4 types for every input query (4× expansion).
+- `SimQuery` — dataclass: original, transformed, query_type.
+- `MLflowLogger` — logs `GoldenReport` fields as MLflow metrics and params.
+  No-op if mlflow is not installed.
+- `generate_locustfile(output_path, endpoint)` — writes a ready-to-run Locust
+  file simulating 4 realistic RAG query types with task weights matching real
+  traffic distributions (short keyword 40%, long NL 20%, OOD 10%).
+- `examples/build_golden_dataset.py` — builds `golden_qa.json` (75 SQuAD samples)
+  and `golden_qa_stress.json` (25 SQuAD + 25 SciQ) from HuggingFace open data.
+- `examples/mlops_demo.py` — full local demo: ChromaDB index → GoldenRunner →
+  BaselineRegistry → MLflowLogger → QuerySimulator → generate_locustfile.
+  Zero API keys required.
+- `examples/ci_regression_gate.py` — CI-executable gate script. Exits 0 on pass,
+  1 on regression. Uses `FakeListChatModel` (no API key).
+- `examples/baselines.json` — committed baseline for `squad_ci` dataset.
+- `examples/golden_qa.json`, `golden_qa_stress.json`, `golden_docs_registry.json`
+  — committed so CI and new clones work without re-downloading HuggingFace datasets.
+- `mlops` optional dependency group: `ragas>=0.2.0`, `mlflow>=2.10.0`,
+  `locust>=2.20.0`, `aiohttp>=3.9.0`, `numpy>=1.24.0`.
+
+### Fixed
+
+- `recall_at_k` in `ragfallback/evaluation/rag_evaluator.py` — counts distinct
+  relevant docs in the top-k slots so duplicates cannot push recall above 1.0.
+- `BaselineRegistry.compare_or_fail` — accepts separate `latency_threshold`
+  parameter (default 0.12) so CI can apply a looser gate on P95 latency
+  (runner noise) vs. a strict 5% gate on quality metrics.
+
+### Changed
+
+- `.github/workflows/test.yml` — added `mlops-regression-gate` job: runs after
+  unit tests pass, installs `ragfallback[mlops]`, builds golden dataset, runs
+  `ci_regression_gate.py`, uploads `baselines.json` as a build artifact.
+
 ## [2.0.2] - 2026-03-22
 
 ### Changed

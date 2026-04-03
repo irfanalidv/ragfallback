@@ -9,7 +9,7 @@ This module exposes a small curated shortcut only (see ``__all__``).
 
 from __future__ import annotations
 
-__version__ = "2.0.2"
+__version__ = "2.1.0"
 __author__ = "Irfan Ali"
 
 from ragfallback.core.adaptive_retriever import AdaptiveRAGRetriever, QueryResult

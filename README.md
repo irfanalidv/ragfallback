@@ -6,6 +6,7 @@
 [![Downloads](https://static.pepy.tech/badge/ragfallback)](https://pepy.tech/project/ragfallback)
 [![Tests](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml/badge.svg)](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/irfanalidv/ragfallback/blob/main/ragfallback_colab.ipynb)
+[![MLOps](https://img.shields.io/badge/MLOps-RAGAS%20%2B%20CI%20Gate-blueviolet)](https://github.com/irfanalidv/ragfallback/tree/main/ragfallback/mlops)
 
 **ragfallback** prevents silent RAG failures across the full pipeline — from bad chunks at ingest, through retrieval outages at runtime, to invisible answer quality degradation in production.
 
@@ -24,7 +25,8 @@
 | 7  | Multi-step questions always fail single-shot RAG      | `MultiHopFallbackStrategy`                         | `uc6_multi_hop_demo.py`   |
 | 8  | Index serves stale data after document updates        | `StaleIndexDetector`                               | —                         |
 | 9  | Answer quality invisible in production                | `RAGEvaluator`                                     | `uc7_rag_evaluator.py`    |
-| 10 | Cross-boundary answers lost between adjacent chunks   | `OverlappingContextStitcher`                       | `uc8_context_stitcher.py` |
+| 10 | Cross-boundary answers lost between adjacent chunks   | `OverlappingContextStitcher`                       | `uc8_context_stitcher.py`        |
+| 11 | Metric regression after model/embedder/chunker change | `GoldenRunner` + `BaselineRegistry`                | `examples/ci_regression_gate.py` |
 
 ---
 
@@ -347,6 +349,9 @@ print(ev.batch_summary([score]))
 | Financial news RAG        | nickmuchi/financial-classification (Apache 2.0) | `python examples/financial_risk_analysis.py`    |
 | Legal contract RAG        | theatticusproject/cuad-qa (CC BY 4.0)           | `python examples/legal_document_analysis.py`    |
 | Medical abstract RAG      | qiaojin/PubMedQA (MIT)                          | `python examples/medical_research_synthesis.py` |
+| MLOps: build golden dataset | SQuAD (CC BY-SA 4.0) + SciQ (CC BY-NC 3.0)   | `python examples/build_golden_dataset.py`       |
+| MLOps: full demo            | SQuAD golden set, zero API keys                | `python examples/mlops_demo.py`                 |
+| MLOps: CI regression gate   | SQuAD golden set, committed baseline           | `python examples/ci_regression_gate.py`         |
 
 ---
 
@@ -384,6 +389,7 @@ pip install ragfallback[chroma,huggingface]          # golden path (no API keys)
 pip install ragfallback[faiss,huggingface]           # FAISS instead of Chroma
 pip install ragfallback[hybrid]                      # adds BM25 (rank_bm25)
 pip install ragfallback[real-data]                   # real dataset examples (HuggingFace datasets)
+pip install ragfallback[mlops]                       # MLOps eval layer (RAGAS + MLflow + Locust)
 ```
 
 | Extra         | Installs                               |
@@ -394,6 +400,7 @@ pip install ragfallback[real-data]                   # real dataset examples (Hu
 | `hybrid`      | rank_bm25, langchain-community         |
 | `real-data`   | datasets                               |
 | `openai`      | langchain-openai, openai               |
+| `mlops`       | ragas, mlflow, locust, aiohttp         |
 
 ---
 
@@ -410,6 +417,97 @@ from ragfallback.diagnostics import (
 from ragfallback.retrieval import SmartThresholdHybridRetriever, FailoverRetriever
 from ragfallback.strategies import QueryVariationsStrategy, MultiHopFallbackStrategy
 from ragfallback.evaluation import RAGEvaluator
+from ragfallback.mlops import (
+    RagasHook, RagasReport,
+    BaselineRegistry, RegressionError,
+    GoldenRunner, GoldenReport,
+    QuerySimulator, SimQuery,
+    MLflowLogger,
+    generate_locustfile,
+)
+```
+
+---
+
+## MLOps — Evaluation & Regression Gate
+
+ragfallback ships a complete MLOps evaluation layer for RAG pipelines.
+No API keys required — all metrics use local heuristics by default,
+with optional RAGAS + MLflow when installed.
+
+### Install
+
+```bash
+pip install ragfallback[chroma,huggingface,real-data,mlops]
+```
+
+### Full eval loop
+
+```python
+import asyncio
+from ragfallback.mlops import GoldenRunner, RagasHook, BaselineRegistry
+
+# 1 — Build evaluation hook (heuristic by default; RAGAS when installed)
+hook = RagasHook(llm=None, embeddings=embeddings)
+
+# 2 — Run against 75 real SQuAD QA pairs
+runner = GoldenRunner(
+    retriever=retriever,           # AdaptiveRAGRetriever instance
+    ragas_hook=hook,
+    dataset="examples/golden_qa.json",
+)
+report = asyncio.run(runner.run_async())
+
+print(f"Recall@3        : {report.recall_at_3:.3f}")
+print(f"Faithfulness    : {report.ragas.faithfulness:.3f}")
+print(f"Latency P95     : {report.latency_p95_ms:.0f}ms")
+print(f"Fallback rate   : {report.fallback_rate:.1%}")
+
+# 3 — Regression gate: fails if any metric drops > 5% vs baseline
+registry = BaselineRegistry("baselines.json")
+registry.compare_or_fail(report, dataset="my_dataset")   # raises RegressionError if degraded
+registry.update(report, dataset="my_dataset")             # save new baseline
+```
+
+### Adversarial query simulation
+
+```python
+from ragfallback.mlops import QuerySimulator
+
+sim = QuerySimulator()
+queries = ["What is the refund policy?", "How do API rate limits work?"]
+
+# 4 types: short_keyword, long_nl, ambiguous, out_of_domain
+mixed = sim.simulate(queries)
+
+# All 4 types for every query — for stress testing
+unhappy = sim.simulate_unhappy_paths(queries)
+```
+
+### Load testing
+
+```python
+from ragfallback.mlops import generate_locustfile
+
+generate_locustfile("locustfile.py", endpoint="http://localhost:8000")
+# Run: locust -f locustfile.py --host http://localhost:8000 --users 50
+```
+
+### CI regression gate (GitHub Actions)
+
+The included workflow (`mlops-regression-gate` job in `.github/workflows/test.yml`)
+runs on every push to main:
+
+1. Pulls 75 SQuAD samples from HuggingFace (open data, CC BY-SA 4.0)
+2. Indexes them in ChromaDB using `all-MiniLM-L6-v2` (no API key)
+3. Runs `GoldenRunner` async — computes recall@3, recall@5, latency P95
+4. Calls `compare_or_fail()` against `examples/baselines.json` (committed)
+5. Fails the pipeline if any metric regresses more than 5%
+
+```bash
+# Run the CI gate locally
+python examples/build_golden_dataset.py   # one-time setup
+python examples/ci_regression_gate.py    # exits 0 (pass) or 1 (fail)
 ```
 
 ---
