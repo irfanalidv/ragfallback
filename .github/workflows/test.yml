@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -e ".[faiss,chroma,huggingface,hybrid]"
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-asyncio
 
       - name: Run unit tests
         env:
@@ -59,6 +59,7 @@ jobs:
       - name: Install MLOps dependencies
         run: |
           pip install -e ".[chroma,huggingface,real-data,mlops]"
+          pip install pytest-asyncio
 
       - name: Build golden dataset from SQuAD (open data, CC BY-SA 4.0)
         run: |
