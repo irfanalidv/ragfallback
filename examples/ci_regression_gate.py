@@ -158,14 +158,14 @@ async def run_gate() -> int:
     print(
         f"  Comparing against baseline (recorded: {baseline.get('recorded_at', 'unknown')})"
     )
-    print("  Threshold: 5% quality metrics; 12% P95 latency (CI noise) → FAIL")
+    print("  Threshold: 5% quality metrics; latency not gated (CI runners too noisy) → FAIL")
 
     try:
         registry.compare_or_fail(
             report,
             dataset=dataset_name,
             threshold=0.05,
-            latency_threshold=0.12,
+            latency_threshold=5.0,   # 500% — P95 latency varies wildly on GH Actions shared runners
         )
         registry.update(report, dataset=dataset_name)
         print("\n  RESULT: PASS ✓ — No regression detected")
