@@ -278,6 +278,19 @@ print(result.answer, result.confidence, result.attempts_used)
 
 Requires `MISTRAL_API_KEY` (or any LangChain-compatible LLM passed via `llm=`).
 
+**aquery_with_fallback** — native async version of `query_with_fallback()`. Real coroutine using LangChain `ainvoke()` — not a thread-pool wrapper. Falls back to thread pool automatically if the underlying LLM doesn't implement `ainvoke`.
+
+```python
+import asyncio
+
+# async-native — LLM API calls overlap instead of serializing
+result = await retriever.aquery_with_fallback("What is the refund policy?")
+print(result.answer, result.confidence, result.attempts)
+
+# works in FastAPI, GoldenRunner.run_async(), or any async context
+asyncio.run(retriever.aquery_with_fallback("How do API tokens expire?"))
+```
+
 ---
 
 ### `ragfallback.strategies`
@@ -313,6 +326,42 @@ metrics = MetricsCollector()
 # passed automatically to AdaptiveRAGRetriever; or record manually:
 metrics.record_attempt(success=True, latency_ms=120, confidence=0.85)
 print(metrics.get_stats())
+```
+
+**CacheMonitor** — wraps any LangChain retriever to track cache hit rate, per-category latency (hit vs miss), TTL-based expiry, and LRU eviction. Zero new dependencies — stdlib only. Supports both sync `invoke()` and async `ainvoke()`.
+
+```python
+from ragfallback.tracking import CacheMonitor
+
+monitor = CacheMonitor(max_size=512, ttl_seconds=600)
+cached_retriever = monitor.wrap_retriever(store.as_retriever(search_kwargs={"k": 4}))
+
+# use cached_retriever exactly like any LangChain retriever
+docs = cached_retriever.invoke("What is the refund policy?")
+
+print(monitor.summary())
+# → cache hit_rate=34.7% hits=26 misses=49 entries=49 evictions=0
+
+stats = monitor.get_stats()
+print(stats.hit_rate, stats.avg_hit_latency_ms, stats.avg_miss_latency_ms)
+```
+
+Pass to `GoldenRunner` to capture cache efficiency alongside RAGAS scores:
+
+```python
+from ragfallback.mlops import GoldenRunner, RagasHook
+from ragfallback.tracking import CacheMonitor
+
+monitor = CacheMonitor(max_size=256, ttl_seconds=300)
+runner = GoldenRunner(
+    retriever=retriever,
+    ragas_hook=hook,
+    dataset="examples/golden_qa.json",
+    cache_monitor=monitor,
+)
+report = asyncio.run(runner.run_async())
+print(report.cache_stats)
+# → {"hit_rate": 0.347, "hits": 26, "misses": 49, "evictions": 0, ...}
 ```
 
 ---
@@ -407,7 +456,7 @@ pip install ragfallback[mlops]                       # MLOps eval layer (RAGAS +
 ## Subpackage import map
 
 ```python
-from ragfallback import AdaptiveRAGRetriever, QueryResult, CostTracker, MetricsCollector
+from ragfallback import AdaptiveRAGRetriever, QueryResult, CostTracker, MetricsCollector, CacheMonitor
 
 from ragfallback.diagnostics import (
     ChunkQualityChecker, EmbeddingGuard, EmbeddingQualityProbe,
@@ -417,6 +466,7 @@ from ragfallback.diagnostics import (
 from ragfallback.retrieval import SmartThresholdHybridRetriever, FailoverRetriever
 from ragfallback.strategies import QueryVariationsStrategy, MultiHopFallbackStrategy
 from ragfallback.evaluation import RAGEvaluator
+from ragfallback.tracking import CacheMonitor, CacheStats
 from ragfallback.mlops import (
     RagasHook, RagasReport,
     BaselineRegistry, RegressionError,
