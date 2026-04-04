@@ -1,11 +1,15 @@
 """Retriever wrapper that retries failed or low-confidence queries using pluggable strategies."""
 
-from typing import List, Optional, Dict, Any, Tuple
-from dataclasses import dataclass
-import logging
-import time
+from __future__ import annotations
+
+import asyncio
+import functools
 import json
+import logging
 import re
+import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 from langchain_core.vectorstores import VectorStore
 from langchain_core.language_models import BaseLanguageModel
@@ -269,6 +273,279 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             cost=total_cost,
             intermediate_steps=intermediate_steps if return_intermediate_steps else None
         )
+
+    async def aquery_with_fallback(
+        self,
+        question: str,
+        context: Optional[Dict[str, Any]] = None,
+        return_intermediate_steps: bool = False,
+        enforce_budget: bool = False,
+    ) -> QueryResult:
+        """Async mirror of :meth:`query_with_fallback` using LangChain ``ainvoke``.
+
+        Uses ``ainvoke`` on the retriever and LLM so concurrent callers can overlap
+        I/O-bound work. Falls back transparently to a thread-pool for objects that
+        do not implement ``ainvoke``.
+
+        Args:
+            question: The question to answer.
+            context: Optional metadata filters / context dict.
+            return_intermediate_steps: Include all attempt dicts in the result.
+            enforce_budget: Stop early if the cost budget is exceeded.
+
+        Returns:
+            :class:`QueryResult` with the same fields as the sync version.
+        """
+        context = context or {}
+        intermediate_steps: List[Dict[str, Any]] = []
+        total_cost = 0.0
+        loop = asyncio.get_event_loop()
+        start = loop.time()
+
+        for strategy_idx, strategy in enumerate(self.strategies):
+            if strategy_idx >= self.max_attempts:
+                break
+
+            if enforce_budget and self.cost_tracker.budget_exceeded():
+                if self.logger:
+                    self.logger.warning("Budget exceeded, stopping fallback attempts")
+                break
+
+            attempt_num = strategy_idx + 1
+
+            # Delegate multi-hop strategies to thread pool (they have no async API)
+            if callable(getattr(strategy, "run", None)):
+                if self.logger:
+                    self.logger.debug(
+                        "strategy %s has run() — delegating to thread pool",
+                        strategy.__class__.__name__,
+                    )
+                retriever = self.vector_store.as_retriever()
+                hop_result = await loop.run_in_executor(
+                    None,
+                    functools.partial(
+                        strategy.run,
+                        question=question,
+                        retriever=retriever,
+                        llm=self.llm,
+                    ),
+                )
+                step_data: Dict[str, Any] = {
+                    "attempt": attempt_num,
+                    "query": question,
+                    "strategy": "multi_hop",
+                    "hops": hop_result.total_hops,
+                    "answer": hop_result.final_answer,
+                    "confidence": 0.85 if hop_result.success else 0.0,
+                    "cost": 0.0,
+                }
+                intermediate_steps.append(step_data)
+                if hop_result.success and hop_result.final_answer:
+                    latency_ms = (loop.time() - start) * 1000
+                    self.metrics_collector.record_success(
+                        attempts=attempt_num,
+                        confidence=0.85,
+                        cost=total_cost,
+                        latency_ms=latency_ms,
+                        strategy_used="multi_hop",
+                    )
+                    return QueryResult(
+                        answer=hop_result.final_answer,
+                        source="multi_hop",
+                        confidence=0.85,
+                        attempts=attempt_num,
+                        cost=total_cost,
+                        intermediate_steps=intermediate_steps if return_intermediate_steps else None,
+                    )
+                continue
+
+            queries = strategy.generate_queries(
+                original_query=question,
+                context=context,
+                attempt=strategy_idx + 1,
+                llm=self.llm,
+            )
+
+            for query_idx, query in enumerate(queries):
+                attempt_num = strategy_idx * len(queries) + query_idx + 1
+
+                if attempt_num > self.max_attempts:
+                    break
+
+                if self.logger:
+                    self.logger.info(
+                        "async attempt %d/%d: %s", attempt_num, self.max_attempts, query[:100]
+                    )
+
+                docs = await self._aretrieve_documents(query, context)
+
+                if not docs:
+                    if self.logger:
+                        self.logger.warning("no documents found for query: %s", query)
+                    intermediate_steps.append(
+                        {"attempt": attempt_num, "query": query,
+                         "documents": 0, "confidence": 0.0, "cost": 0.0}
+                    )
+                    continue
+
+                answer, source, confidence, cost = await self._agenerate_answer(
+                    question=question,
+                    query=query,
+                    documents=docs,
+                    context=context,
+                )
+
+                total_cost += cost
+                latency_ms = (loop.time() - start) * 1000
+
+                step_data = {
+                    "attempt": attempt_num,
+                    "query": query,
+                    "documents": len(docs),
+                    "answer": answer,
+                    "source": source,
+                    "confidence": confidence,
+                    "cost": cost,
+                }
+                intermediate_steps.append(step_data)
+
+                if confidence >= self.min_confidence and answer.lower() not in [
+                    "x", "not found", "n/a", "unknown"
+                ]:
+                    if self.logger:
+                        self.logger.debug(
+                            "async attempt %d succeeded (confidence %.2f)",
+                            attempt_num,
+                            confidence,
+                        )
+                    self.metrics_collector.record_success(
+                        attempts=attempt_num,
+                        confidence=confidence,
+                        cost=total_cost,
+                        latency_ms=latency_ms,
+                        strategy_used=strategy.get_name(),
+                    )
+                    return QueryResult(
+                        answer=answer,
+                        source=source,
+                        confidence=confidence,
+                        attempts=attempt_num,
+                        cost=total_cost,
+                        intermediate_steps=intermediate_steps if return_intermediate_steps else None,
+                    )
+
+        latency_ms = (loop.time() - start) * 1000
+
+        if self.logger:
+            self.logger.warning(
+                "all %d async attempts exhausted without meeting confidence threshold",
+                len(intermediate_steps),
+            )
+
+        if intermediate_steps:
+            best_attempt = max(intermediate_steps, key=lambda x: x.get("confidence", 0.0))
+            best_answer = best_attempt.get("answer", "No answer found")
+            best_source = best_attempt.get("source", "")
+            best_confidence = best_attempt.get("confidence", 0.0)
+        else:
+            best_answer = "No answer found"
+            best_source = ""
+            best_confidence = 0.0
+
+        self.metrics_collector.record_failure(
+            attempts=len(intermediate_steps),
+            cost=total_cost,
+            latency_ms=latency_ms,
+            strategy_used=self.strategies[0].get_name() if self.strategies else "unknown",
+        )
+
+        return QueryResult(
+            answer=best_answer,
+            source=best_source,
+            confidence=best_confidence,
+            attempts=len(intermediate_steps) or 1,
+            cost=total_cost,
+            intermediate_steps=intermediate_steps if return_intermediate_steps else None,
+        )
+
+    async def _aretrieve_documents(
+        self, query: str, context: Dict[str, Any]
+    ) -> List[Any]:
+        """Async document retrieval; falls back to thread pool if ``ainvoke`` absent."""
+        try:
+            search_kwargs = self._build_search_kwargs(context)
+            retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
+            ainvoke = getattr(retriever, "ainvoke", None)
+            if ainvoke is not None:
+                result = await ainvoke(query)
+                return list(result or [])
+            # Fall back: run sync invoke in executor
+            loop = asyncio.get_event_loop()
+            invoke = getattr(retriever, "invoke", retriever.get_relevant_documents)
+            return list(
+                await loop.run_in_executor(None, functools.partial(invoke, query)) or []
+            )
+        except Exception as exc:
+            if self.logger:
+                self.logger.error("async retrieve error: %s", exc)
+            return []
+
+    async def _agenerate_answer(
+        self,
+        question: str,
+        query: str,
+        documents: List[Any],
+        context: Dict[str, Any],
+    ) -> Tuple[str, str, float, float]:
+        """Async answer generation; falls back to thread pool if ``ainvoke`` absent."""
+        docs_text = self._format_documents(documents)
+        prompt = self._build_answer_prompt(question, docs_text, context)
+        loop = asyncio.get_event_loop()
+
+        with self.cost_tracker.track(operation="answer_generation"):
+            messages = [
+                SystemMessage(content=self.answer_prompt_template),
+                HumanMessage(content=prompt),
+            ]
+            try:
+                ainvoke = getattr(self.llm, "ainvoke", None)
+                if ainvoke is not None:
+                    response = await ainvoke(messages)
+                else:
+                    response = await loop.run_in_executor(
+                        None, functools.partial(self.llm.invoke, messages)
+                    )
+            except AttributeError:
+                response = await loop.run_in_executor(
+                    None, functools.partial(self.llm.invoke, messages)
+                )
+
+            answer_text = response.content if hasattr(response, "content") else str(response)
+
+            if hasattr(response, "response_metadata"):
+                metadata = response.response_metadata
+                if "token_usage" in metadata:
+                    usage = metadata["token_usage"]
+                    self.cost_tracker.record_tokens(
+                        input_tokens=usage.get("prompt_tokens", 0),
+                        output_tokens=usage.get("completion_tokens", 0),
+                        model=getattr(self.llm, "model_name", "gpt-4"),
+                    )
+
+        answer, source = self._parse_answer(answer_text)
+        scorer = ConfidenceScorer(llm=self.llm)
+        confidence = await loop.run_in_executor(
+            None,
+            functools.partial(
+                scorer.score,
+                question=question,
+                answer=answer,
+                documents=documents,
+                context=context,
+            ),
+        )
+        cost = self.cost_tracker.get_last_cost()
+        return answer, source, confidence, cost
 
     def _retrieve_documents(
         self,

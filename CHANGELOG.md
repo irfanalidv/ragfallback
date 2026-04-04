@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-04-05
+
+### Added
+- `AdaptiveRAGRetriever.aquery_with_fallback()` — native async retrieval.
+  Mirrors `query_with_fallback()` exactly but uses LangChain `ainvoke()`
+  throughout. Gracefully falls back to thread pool if `ainvoke` is not
+  implemented by the underlying LLM or retriever. Enables true concurrent
+  eval in `GoldenRunner.run_async()` and production FastAPI backends.
+- `ragfallback.tracking.CacheMonitor` — hit/miss tracking wrapper for any
+  LangChain retriever. Tracks hit rate, latency split by hit/miss, TTL-based
+  expiry, LRU eviction, and entry count. Supports both sync `invoke()` and
+  async `ainvoke()`. Exposes `get_stats() -> CacheStats`, `summary()`,
+  and `reset()`. Exported from `ragfallback.tracking` and `ragfallback`.
+- `CacheStats` dataclass — structured cache metrics: hit_rate, avg latencies,
+  evictions. Includes `as_dict()` for JSON serialization.
+- `GoldenReport.cache_stats` — optional field populated when `CacheMonitor`
+  is passed to `GoldenRunner`. Surfaces cache efficiency alongside RAGAS
+  and latency metrics in the same report.
+- `GoldenRunner` optional `cache_monitor` param — pass a `CacheMonitor`
+  instance to automatically wrap the retriever and capture cache stats
+  during golden eval runs.
+
+### Changed
+- `GoldenRunner.run_async()` — now uses native `aquery_with_fallback()`
+  instead of `run_in_executor` wrapping sync code. Falls back to thread
+  pool automatically if retriever doesn't support `ainvoke`. This makes
+  concurrent golden eval genuinely async — HTTP calls to LLM APIs now
+  overlap instead of serializing through a thread pool.
+
+### Fixed
+- `tests/unit/test_async_retriever.py` — new test coverage for async path
+- `tests/unit/test_cache_monitor.py` — new test coverage for CacheMonitor
+
 ## [2.1.0] - 2026-04-03
 
 ### Added
