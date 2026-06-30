@@ -1,6 +1,6 @@
 <svg viewBox="0 0 1400 980" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
 <rect x="0" y="0" width="1400" height="980" fill="#0b0e14"/>
-<text x="700.0" y="48" fill="#e6edf3" font-size="34" font-weight="700" text-anchor="middle">ragfallback v2.2.1</text>
+<text x="700.0" y="48" fill="#e6edf3" font-size="34" font-weight="700" text-anchor="middle">ragfallback v2.2.3</text>
 <text x="700.0" y="76" fill="#8b949e" font-size="16" text-anchor="middle">pip install ragfallback[chroma,huggingface]   ·   resilience layer for any LangChain-compatible RAG pipeline</text>
 <rect x="40" y="100" width="1320" height="46" rx="8" fill="#161b22" stroke="#30363d"/>
 <text x="150.0" y="129.0" fill="#e6edf3" font-size="18" font-weight="600" text-anchor="middle">[Ingest]</text>

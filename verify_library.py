@@ -186,9 +186,27 @@ def _test_example_syntax():
 def _test_version():
     import ragfallback
 
-    assert (
-        ragfallback.__version__ == "2.0.2"
-    ), f"Expected '2.0.2', got '{ragfallback.__version__}'"
+    # Don't hardcode a version string here — it goes stale every release
+    # (this exact assertion silently said "2.0.2" through 2.2.1, three
+    # releases after it stopped being true). Instead, check the only
+    # thing that actually matters: __version__ in ragfallback/__init__.py
+    # agrees with the version the installed package metadata reports
+    # (from pyproject.toml, via the wheel's METADATA). If these two
+    # drift apart, that's a real packaging bug — this catches it.
+    try:
+        from importlib.metadata import PackageNotFoundError
+        from importlib.metadata import version as _installed_version
+
+        installed = _installed_version("ragfallback")
+        assert ragfallback.__version__ == installed, (
+            f"ragfallback/__init__.py __version__ ('{ragfallback.__version__}') "
+            f"!= installed package metadata version ('{installed}') — "
+            f"pyproject.toml and __init__.py have drifted out of sync."
+        )
+    except PackageNotFoundError:
+        # Running from a source checkout without `pip install -e .` —
+        # nothing to cross-check against, just confirm __version__ exists.
+        assert ragfallback.__version__, "ragfallback.__version__ is empty"
     print(f"       version={ragfallback.__version__}")
 
 
@@ -222,7 +240,10 @@ check(
     "Factory + embeddings (create_open_source_embeddings → dim 384)", _test_embeddings
 )
 check("Example files syntax (compile all examples/*.py)", _test_example_syntax)
-check("Version == '2.0.2'", _test_version)
+check(
+    "Version consistency (__init__.py matches installed package metadata)",
+    _test_version,
+)
 
 print("=" * 70)
 passed = sum(1 for _, ok, _ in results if ok)

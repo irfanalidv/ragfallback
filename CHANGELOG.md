@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3] - 2026-06-30
+
+### Fixed
+- `verify_library.py` — the version check hardcoded `"2.0.2"` and had
+  been silently wrong for three releases (through 2.2.0, 2.2.1, and
+  2.2.2) without the script ever failing, because `assert __version__
+  == "2.0.2"` was never updated alongside actual version bumps. Replaced
+  with a self-consistency check against `importlib.metadata.version()`:
+  it now asserts `ragfallback.__version__` matches what's actually
+  installed, which is a real packaging invariant that never needs
+  hand-editing at release time again — and would have caught this
+  exact class of drift immediately if it had existed from the start.
+- `ragfallback_arch.svg` — version stamp was left at `v2.2.1` after the
+  2.2.2 release (diagram content was already current, only the label
+  text was stale). Now `v2.2.3`; kept in sync with
+  `docs/architecture_diagram_spec.md`.
+
 ## [2.2.2] - 2026-06-30
 
 ### Added
