@@ -119,7 +119,7 @@ python run_all_examples.py
 ## Import rules
 
 ```python
-# ✅ Correct: root exports (the 4 curated shortcuts)
+# ✅ Correct: root exports (the curated shortcuts — see ragfallback/__init__.py __all__)
 from ragfallback import AdaptiveRAGRetriever, CostTracker
 
 # ✅ Correct: subpackage imports for everything else
@@ -131,3 +131,8 @@ from ragfallback.evaluation import RAGEvaluator
 # ❌ Wrong: don't add new symbols to ragfallback/__init__.py
 # unless they are genuinely the most-used entry points
 ```
+
+## Releasing
+
+Maintainer-only. See [RELEASE.md](RELEASE.md) — version bump, CHANGELOG entry,
+tag, and PyPI Trusted Publishing via `.github/workflows/release.yml`.

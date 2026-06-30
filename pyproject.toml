@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragfallback"
-version = "2.2.0"
+version = "2.2.1"
 description = "Prevents silent RAG failures — chunk quality, retrieval fallback, adaptive querying, and answer evaluation in one library."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -16,6 +16,7 @@ keywords = ["rag", "retrieval", "llm", "fallback", "query-variations", "langchai
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -23,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
 
 dependencies = [
@@ -103,6 +105,7 @@ Homepage = "https://github.com/irfanalidv/ragfallback"
 Documentation = "https://github.com/irfanalidv/ragfallback#readme"
 Repository = "https://github.com/irfanalidv/ragfallback"
 Issues = "https://github.com/irfanalidv/ragfallback/issues"
+Changelog = "https://github.com/irfanalidv/ragfallback/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["."]

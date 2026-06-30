@@ -1,14 +1,61 @@
+<div align="center">
+
 # ragfallback
 
-[![GitHub license](https://img.shields.io/github/license/irfanalidv/ragfallback)](https://github.com/irfanalidv/ragfallback/blob/main/LICENSE)
-[![Python version](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue.svg)](https://pypi.org/project/ragfallback/)
-[![PyPI](https://img.shields.io/pypi/v/ragfallback)](https://pypi.org/project/ragfallback/)
+**The reliability layer for RAG pipelines that already work — until they don't.**
+
+Drop into any LangChain-compatible stack. Catches bad chunks before they're embedded, fails over when retrieval goes empty, and scores answer quality on every run — so degradation shows up in CI, not in a user's support ticket.
+
+[![PyPI](https://img.shields.io/pypi/v/ragfallback?color=3fb950&label=PyPI)](https://pypi.org/project/ragfallback/)
 [![Downloads](https://static.pepy.tech/badge/ragfallback)](https://pepy.tech/project/ragfallback)
 [![Tests](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml/badge.svg)](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml)
+[![Python](https://img.shields.io/badge/python-3.8%E2%80%933.11-blue.svg)](https://pypi.org/project/ragfallback/)
+[![License: MIT](https://img.shields.io/github/license/irfanalidv/ragfallback)](https://github.com/irfanalidv/ragfallback/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/irfanalidv/ragfallback?style=social)](https://github.com/irfanalidv/ragfallback/stargazers)
+<br/>
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/irfanalidv/ragfallback/blob/main/ragfallback_colab.ipynb)
-[![MLOps](https://img.shields.io/badge/MLOps-RAGAS%20%2B%20CI%20Gate-blueviolet)](https://github.com/irfanalidv/ragfallback/tree/main/ragfallback/mlops)
+[![MLOps: RAGAS + CI regression gate](https://img.shields.io/badge/MLOps-RAGAS%20%2B%20CI%20Gate-blueviolet)](https://github.com/irfanalidv/ragfallback/tree/main/ragfallback/mlops)
+[![Real data, zero mocks](https://img.shields.io/badge/examples-real%20datasets%20only-3fb950)](#examples--real-public-datasets)
 
-**ragfallback** prevents silent RAG failures across the full pipeline — from bad chunks at ingest, through retrieval outages at runtime, to invisible answer quality degradation in production.
+</div>
+
+<br/>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/irfanalidv/ragfallback/main/ragfallback_arch.svg" alt="ragfallback architecture — diagnostics, retrieval, core, evaluation and MLOps modules across the ingest-to-operate pipeline" width="100%">
+</p>
+
+---
+
+## Contents
+
+- [Why ragfallback?](#why-ragfallback)
+- [What it prevents](#what-it-prevents)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Full pipeline](#full-pipeline)
+- [Module reference](#module-reference)
+- [Examples — real public datasets](#examples--real-public-datasets)
+- [Verified numbers](#verified-numbers--squad-wikipedia-validation-set)
+- [Install](#install)
+- [MLOps — evaluation & regression gate](#mlops--evaluation--regression-gate)
+- [Contributing](#contributing)
+- [FAQ](#faq)
+
+---
+
+## Why ragfallback?
+
+RAG pipelines rarely fail loudly. They fail by quietly returning an empty context, a half-relevant chunk, or a confident-sounding hallucination — and nothing in a typical LangChain + vector-store stack tells you that happened. ragfallback is not another retrieval framework competing with LangChain, LlamaIndex, or your vector DB; it's a thin layer of guards and checks that wraps the stack you already have.
+
+| If your stack today is...                          | ragfallback adds                                                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Raw LangChain retriever, no fallback                 | `FailoverRetriever` + `SmartThresholdHybridRetriever` — a second path when the first one goes empty |
+| RAGAS or another eval library, run manually          | `GoldenRunner` + `BaselineRegistry` — the same metrics wired into a CI gate that fails the build     |
+| Nothing — chunking and indexing "just work" for now  | `ChunkQualityChecker` + `EmbeddingGuard` — catches the two most common silent corruption sources     |
+| Hand-rolled retry logic around an LLM call           | `AdaptiveRAGRetriever` — confidence-scored retries with pluggable strategies, sync and async         |
+
+If you don't have any of the failure modes in the table below, you don't need this library. If you've shipped a RAG feature past a demo, you've probably hit at least three of them.
 
 ---
 
@@ -255,6 +302,22 @@ from ragfallback.retrieval import FailoverRetriever
 retriever = FailoverRetriever(primary=chroma_retriever, fallback=faiss_retriever, min_results=1)
 ```
 
+**ReRankerGuard** — pass-through hook for a second-stage reranker. Sits after vector retrieval, before the prompt; does nothing until you wire a `rerank_fn`, so it's safe to add to a pipeline today and fill in a cross-encoder later.
+
+```python
+from ragfallback.retrieval import ReRankerGuard
+guard = ReRankerGuard(rerank_fn=my_cross_encoder_rerank, top_n=4)
+docs = guard.apply(query, retrieved_docs)
+```
+
+**RetrieverAsVectorStore** — wraps any LangChain `BaseRetriever` (e.g. `SmartThresholdHybridRetriever`) so it exposes the `as_retriever()` surface `AdaptiveRAGRetriever` expects.
+
+```python
+from ragfallback.retrieval import RetrieverAsVectorStore
+shim = RetrieverAsVectorStore(hybrid_retriever)
+retriever = AdaptiveRAGRetriever(vector_store=shim, llm=llm)
+```
+
 ---
 
 ### `ragfallback.core`
@@ -463,7 +526,10 @@ from ragfallback.diagnostics import (
     RetrievalHealthCheck, StaleIndexDetector, ContextWindowGuard,
     OverlappingContextStitcher, sanitize_documents, sanitize_metadata,
 )
-from ragfallback.retrieval import SmartThresholdHybridRetriever, FailoverRetriever
+from ragfallback.retrieval import (
+    SmartThresholdHybridRetriever, FailoverRetriever,
+    ReRankerGuard, RetrieverAsVectorStore,
+)
 from ragfallback.strategies import QueryVariationsStrategy, MultiHopFallbackStrategy
 from ragfallback.evaluation import RAGEvaluator
 from ragfallback.tracking import CacheMonitor, CacheStats
@@ -562,11 +628,47 @@ python examples/ci_regression_gate.py    # exits 0 (pass) or 1 (fail)
 
 ---
 
+## FAQ
+
+**Does this replace LangChain / LlamaIndex / my vector DB?**
+No. ragfallback wraps whatever retriever and vector store you already use. It adds checks and fallback paths; it doesn't add a new abstraction layer you have to migrate to.
+
+**Do I need an LLM API key to use this?**
+No for most of it. `ChunkQualityChecker`, `EmbeddingGuard`, `RetrievalHealthCheck`, `SmartThresholdHybridRetriever`, `ContextWindowGuard`, and `RAGEvaluator` (heuristic mode) all run locally. Only `AdaptiveRAGRetriever`, `QueryVariationsStrategy`, and `MultiHopFallbackStrategy` need an LLM, and any LangChain-compatible one works — including local Ollama models.
+
+**Why are the example numbers different every time I run them?**
+Because they're computed live against real public datasets (SQuAD, PubMedQA, CUAD), not hardcoded. The README's "Verified numbers" section is the literal stdout of `examples/real_data_demo.py` — run it yourself to confirm.
+
+**Is this production-ready?**
+It's used in the author's own RAG pipelines and has a CI regression gate that runs on every push (see badge above). It's tagged Beta on PyPI because the public API can still shift between minor versions — pin a version in production and read [CHANGELOG.md](CHANGELOG.md) before upgrading.
+
+**How is this different from RAGAS?**
+RAGAS scores answer quality. ragfallback includes a thin RAGAS-compatible hook (`ragfallback.mlops.RagasHook`) for that, but the rest of the library is about *preventing* failures before they reach evaluation — chunk quality, embedding integrity, retrieval fallback, and context-window fit. Use both; they solve different parts of the pipeline.
+
+---
+
+## Star history
+
+<a href="https://star-history.com/#irfanalidv/ragfallback&Date">
+  <img src="https://api.star-history.com/svg?repos=irfanalidv/ragfallback&type=Date" alt="Star History Chart" width="100%">
+</a>
+
+---
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). The quick version: run `pytest tests/unit/ -v` before any PR, follow Google-style docstrings, use `logging` not `print`, and update `__all__` in the subpackage `__init__.py`.
 
 ## License · Changelog
 
-MIT License — see [LICENSE](LICENSE).  
+MIT License — see [LICENSE](LICENSE).
 Full version history in [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+<div align="center">
+
+Built and maintained by **[Irfan Ali](https://github.com/irfanalidv)** — Senior AI Engineer (LLMs, RAG, agents, voice AI).
+Part of an [11-package open-source toolkit](https://pypi.org/user/irfanalidv/) for production RAG and agent systems.
+
+</div>

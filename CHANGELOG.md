@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-06-30
+
+### Added
+- Real PyPI Trusted Publishing via `.github/workflows/release.yml` (OIDC,
+  triggered on GitHub Release) — replaces manual `twine upload`. The
+  README's "Trusted Publishing" badge is now accurate.
+- `ragfallback_arch.svg` — replaces the stale v2.0.2 architecture PNG.
+  Vector diagram, current through v2.2.x (diagnostics, retrieval, core +
+  strategies, evaluation + tracking, and the mlops regression-gate loop).
+- README: "Why ragfallback?" positioning section, table of contents, FAQ,
+  and star-history chart.
+- README: documented `ReRankerGuard` and `RetrieverAsVectorStore`, both
+  exported from `ragfallback.retrieval` since 2.x but missing from the
+  module reference and subpackage import map.
+
+### Changed
+- `pyproject.toml` — added `Typing :: Typed` and `Operating System :: OS
+  Independent` classifiers, `Changelog` project URL.
+
 ## [2.2.0] - 2026-04-05
 
 ### Added
