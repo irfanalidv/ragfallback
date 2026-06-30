@@ -15,13 +15,16 @@ import tempfile
 from pathlib import Path
 
 import _kb_common
+
 from ragfallback.diagnostics import RetrievalHealthCheck
 
 
 def main() -> None:
     docs = _kb_common.load_sample_kb()
     persist = Path(tempfile.mkdtemp(prefix="ragfallback_uc1_")) / "chroma"
-    vs = _kb_common.build_chroma_store(docs, persist_directory=persist, collection_name="uc1")
+    vs = _kb_common.build_chroma_store(
+        docs, persist_directory=persist, collection_name="uc1"
+    )
     health = RetrievalHealthCheck(k=4)
     report = health.quick_check(vs, docs, sample_size=min(10, len(docs)), seed=42)
     print(report.summary())

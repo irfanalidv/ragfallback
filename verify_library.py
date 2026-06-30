@@ -30,7 +30,13 @@ def check(name: str, fn) -> None:
 
 # ─── Test 1: Root imports ─────────────────────────────────────────────────────
 def _test_root_imports():
-    from ragfallback import AdaptiveRAGRetriever, CostTracker, MetricsCollector, QueryResult
+    from ragfallback import (
+        AdaptiveRAGRetriever,
+        CostTracker,
+        MetricsCollector,
+        QueryResult,
+    )
+
     assert AdaptiveRAGRetriever
     assert QueryResult
     assert CostTracker
@@ -39,6 +45,9 @@ def _test_root_imports():
 
 # ─── Test 2: ragfallback.diagnostics ─────────────────────────────────────────
 def _test_diagnostics():
+    # Exercise each one minimally
+    from langchain_core.documents import Document
+
     from ragfallback.diagnostics import (
         ChunkQualityChecker,
         ChunkQualityReport,
@@ -53,8 +62,6 @@ def _test_diagnostics():
         sanitize_documents,
         sanitize_metadata,
     )
-    # Exercise each one minimally
-    from langchain_core.documents import Document
 
     docs = [Document(page_content="The quick brown fox jumps over the lazy dog. " * 5)]
     report = ChunkQualityChecker().check(docs)
@@ -64,7 +71,9 @@ def _test_diagnostics():
     merged = stitcher.stitch(docs)
     assert isinstance(merged, list)
 
-    clean = sanitize_documents([Document(page_content="x", metadata={"tags": ["a", "b"]})])
+    clean = sanitize_documents(
+        [Document(page_content="x", metadata={"tags": ["a", "b"]})]
+    )
     assert isinstance(clean[0].metadata["tags"], str)
 
     clean_meta = sanitize_metadata({"key": [1, 2]})
@@ -79,6 +88,7 @@ def _test_retrieval():
         RetrieverAsVectorStore,
         SmartThresholdHybridRetriever,
     )
+
     assert SmartThresholdHybridRetriever
     assert FailoverRetriever
     assert ReRankerGuard
@@ -94,6 +104,7 @@ def _test_strategies():
         MultiHopResult,
         QueryVariationsStrategy,
     )
+
     hop = HopResult(
         hop_number=1,
         sub_question="test?",
@@ -116,7 +127,9 @@ def _test_evaluation():
     score = ev.evaluate(
         question="What is Python?",
         answer="Python is a high-level programming language.",
-        contexts=["Python is a high-level programming language used for many purposes."],
+        contexts=[
+            "Python is a high-level programming language used for many purposes."
+        ],
         ground_truth="Python is a programming language.",
     )
     assert isinstance(score, RAGScore)
@@ -135,7 +148,9 @@ def _test_tracking():
     assert "total_cost" in report
 
     mc = MetricsCollector()
-    mc.record_success(attempts=1, confidence=0.9, cost=0.001, latency_ms=120, strategy_used="direct")
+    mc.record_success(
+        attempts=1, confidence=0.9, cost=0.001, latency_ms=120, strategy_used="direct"
+    )
     stats = mc.get_stats()
     assert stats["total_queries"] >= 1
     assert stats["success_rate"] > 0
@@ -171,9 +186,9 @@ def _test_example_syntax():
 def _test_version():
     import ragfallback
 
-    assert ragfallback.__version__ == "2.0.2", (
-        f"Expected '2.0.2', got '{ragfallback.__version__}'"
-    )
+    assert (
+        ragfallback.__version__ == "2.0.2"
+    ), f"Expected '2.0.2', got '{ragfallback.__version__}'"
     print(f"       version={ragfallback.__version__}")
 
 
@@ -182,13 +197,30 @@ print("=" * 70)
 print("ragfallback Library Verification Suite v2.0")
 print("=" * 70)
 
-check("Root imports (AdaptiveRAGRetriever, QueryResult, CostTracker, MetricsCollector)", _test_root_imports)
+check(
+    "Root imports (AdaptiveRAGRetriever, QueryResult, CostTracker, MetricsCollector)",
+    _test_root_imports,
+)
 check("ragfallback.diagnostics (all 12 exports)", _test_diagnostics)
-check("ragfallback.retrieval (SmartThresholdHybridRetriever, FailoverRetriever, ReRankerGuard, RetrieverAsVectorStore)", _test_retrieval)
-check("ragfallback.strategies (QueryVariationsStrategy, MultiHopFallbackStrategy, HopResult, MultiHopResult)", _test_strategies)
-check("ragfallback.evaluation (RAGEvaluator.evaluate() returns RAGScore with overall_score > 0)", _test_evaluation)
-check("ragfallback.tracking (CostTracker.record_tokens, MetricsCollector.record_success)", _test_tracking)
-check("Factory + embeddings (create_open_source_embeddings → dim 384)", _test_embeddings)
+check(
+    "ragfallback.retrieval (SmartThresholdHybridRetriever, FailoverRetriever, ReRankerGuard, RetrieverAsVectorStore)",
+    _test_retrieval,
+)
+check(
+    "ragfallback.strategies (QueryVariationsStrategy, MultiHopFallbackStrategy, HopResult, MultiHopResult)",
+    _test_strategies,
+)
+check(
+    "ragfallback.evaluation (RAGEvaluator.evaluate() returns RAGScore with overall_score > 0)",
+    _test_evaluation,
+)
+check(
+    "ragfallback.tracking (CostTracker.record_tokens, MetricsCollector.record_success)",
+    _test_tracking,
+)
+check(
+    "Factory + embeddings (create_open_source_embeddings → dim 384)", _test_embeddings
+)
 check("Example files syntax (compile all examples/*.py)", _test_example_syntax)
 check("Version == '2.0.2'", _test_version)
 

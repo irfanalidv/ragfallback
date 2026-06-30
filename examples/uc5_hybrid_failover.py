@@ -25,7 +25,11 @@ if (_repo_root / "ragfallback").is_dir() and str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
 import _kb_common  # noqa: E402
-from ragfallback.retrieval import FailoverRetriever, SmartThresholdHybridRetriever  # noqa: E402
+
+from ragfallback.retrieval import (  # noqa: E402
+    FailoverRetriever,
+    SmartThresholdHybridRetriever,
+)
 
 
 def demo_hybrid_bm25_fallback(docs, vs) -> None:
@@ -56,7 +60,9 @@ def demo_hybrid_bm25_fallback(docs, vs) -> None:
 
     # _dense_scores_are_weak is part of the public API — demonstrate it
     print(f"\n  _dense_scores_are_weak([])  → {hybrid._dense_scores_are_weak([])}")
-    print(f"  _dense_scores_are_weak([doc]) → {hybrid._dense_scores_are_weak(docs_out[:1])}")
+    print(
+        f"  _dense_scores_are_weak([doc]) → {hybrid._dense_scores_are_weak(docs_out[:1])}"
+    )
 
 
 def demo_failover_on_empty(vs) -> None:
@@ -65,6 +71,7 @@ def demo_failover_on_empty(vs) -> None:
 
     class EmptyRetriever:
         """Simulates a retriever that always returns nothing (e.g. index gap)."""
+
         def invoke(self, query: str):
             return []
 
@@ -76,8 +83,10 @@ def demo_failover_on_empty(vs) -> None:
     docs_out = fb.invoke(query)
     print(f"Results: {len(docs_out)} doc(s) from fallback")
     for d in docs_out:
-        print(f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "
-              f"text='{d.page_content[:60].replace(chr(10), ' ')}…'")
+        print(
+            f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "
+            f"text='{d.page_content[:60].replace(chr(10), ' ')}…'"
+        )
 
 
 def demo_failover_on_exception(vs) -> None:
@@ -86,6 +95,7 @@ def demo_failover_on_exception(vs) -> None:
 
     class BrokenRetriever:
         """Simulates a downed remote vector store."""
+
         def invoke(self, query: str):
             raise ConnectionError("Pinecone endpoint unreachable")
 
@@ -97,8 +107,10 @@ def demo_failover_on_exception(vs) -> None:
     docs_out = fb.invoke(query)
     print(f"Results: {len(docs_out)} doc(s) from fallback")
     for d in docs_out:
-        print(f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "
-              f"text='{d.page_content[:60].replace(chr(10), ' ')}…'")
+        print(
+            f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "
+            f"text='{d.page_content[:60].replace(chr(10), ' ')}…'"
+        )
 
 
 def demo_failover_min_results(vs) -> None:
@@ -116,8 +128,10 @@ def demo_failover_min_results(vs) -> None:
     docs_out = fb.invoke(query)
     print(f"Results: {len(docs_out)} doc(s)  (fallback returned more)")
     for d in docs_out:
-        print(f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "
-              f"text='{d.page_content[:60].replace(chr(10), ' ')}…'")
+        print(
+            f"  source={d.metadata.get('ragfallback_retrieval_source')!r}  "
+            f"text='{d.page_content[:60].replace(chr(10), ' ')}…'"
+        )
 
 
 def main() -> None:

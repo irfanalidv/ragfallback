@@ -21,7 +21,9 @@ def _normalize_value(value: Any) -> Union[str, int, float, bool, None]:
     return str(value)
 
 
-def sanitize_metadata(metadata: Dict[str, Any]) -> Dict[str, Union[str, int, float, bool, None]]:
+def sanitize_metadata(
+    metadata: Dict[str, Any],
+) -> Dict[str, Union[str, int, float, bool, None]]:
     """Flatten nested structures so filters / JSON / caches see stable scalar metadata."""
     out: Dict[str, Any] = {}
     for k, v in (metadata or {}).items():

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
+from typing import List, Optional
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -14,7 +14,6 @@ from ragfallback.strategies.multi_hop import (
     MultiHopResult,
 )
 
-
 # ---------------------------------------------------------------------------
 # Shared fixtures / helpers
 # ---------------------------------------------------------------------------
@@ -24,7 +23,9 @@ def _make_mock_vector_store(docs: Optional[List] = None):
     from langchain_core.documents import Document
 
     if docs is None:
-        docs = [Document(page_content="Acme Corp was acquired by GlobalTech.", metadata={})]
+        docs = [
+            Document(page_content="Acme Corp was acquired by GlobalTech.", metadata={})
+        ]
 
     vs = MagicMock()
     retriever = MagicMock()
@@ -92,7 +93,9 @@ class TestMultiHopBridgeSuccess:
             embedding_model=emb,
             fallback_strategies=[strategy],
         )
-        result = retriever.query_with_fallback("What was GlobalTech's revenue after acquiring Acme?")
+        result = retriever.query_with_fallback(
+            "What was GlobalTech's revenue after acquiring Acme?"
+        )
 
         assert isinstance(result, QueryResult)
         assert result.source == "multi_hop"
@@ -111,7 +114,9 @@ class TestMultiHopBridgeSuccess:
             embedding_model=emb,
             fallback_strategies=[strategy],
         )
-        result = retriever.query_with_fallback("What was GlobalTech's revenue after acquiring Acme?")
+        result = retriever.query_with_fallback(
+            "What was GlobalTech's revenue after acquiring Acme?"
+        )
 
         assert result.answer == hop_result.final_answer
 
@@ -150,7 +155,10 @@ class TestMultiHopBridgeSuccess:
 
         strategy.run.assert_called_once()
         call_kwargs = strategy.run.call_args
-        assert call_kwargs.kwargs.get("question") == question or call_kwargs.args[0] == question
+        assert (
+            call_kwargs.kwargs.get("question") == question
+            or call_kwargs.args[0] == question
+        )
 
     def test_intermediate_steps_include_strategy_key(self):
         vs = _make_mock_vector_store()
@@ -165,7 +173,9 @@ class TestMultiHopBridgeSuccess:
             embedding_model=emb,
             fallback_strategies=[strategy],
         )
-        result = retriever.query_with_fallback("question", return_intermediate_steps=True)
+        result = retriever.query_with_fallback(
+            "question", return_intermediate_steps=True
+        )
 
         assert result.intermediate_steps is not None
         assert len(result.intermediate_steps) >= 1
@@ -185,7 +195,9 @@ class TestMultiHopBridgeSuccess:
             embedding_model=emb,
             fallback_strategies=[strategy],
         )
-        result = retriever.query_with_fallback("question", return_intermediate_steps=False)
+        result = retriever.query_with_fallback(
+            "question", return_intermediate_steps=False
+        )
 
         assert result.intermediate_steps is None
 

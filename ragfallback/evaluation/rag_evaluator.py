@@ -28,7 +28,9 @@ def dcg_at_k(relevance_scores: Sequence[float], k: int) -> float:
     return dcg
 
 
-def ndcg_at_k(relevance_scores: Sequence[float], ideal_scores: Sequence[float], k: int) -> float:
+def ndcg_at_k(
+    relevance_scores: Sequence[float], ideal_scores: Sequence[float], k: int
+) -> float:
     dcg = dcg_at_k(relevance_scores, k)
     idcg = dcg_at_k(sorted(ideal_scores, reverse=True), k)
     if idcg <= 0:
@@ -43,7 +45,11 @@ class RAGEvalSummary:
     notes: List[str] = field(default_factory=list)
 
     def as_dict(self) -> Dict[str, Any]:
-        return {"retrieval": self.retrieval, "generation": self.generation, "notes": self.notes}
+        return {
+            "retrieval": self.retrieval,
+            "generation": self.generation,
+            "notes": self.notes,
+        }
 
 
 def _tokenize_words(text: str) -> Set[str]:
@@ -253,9 +259,7 @@ class RAGEvaluator:
         Use for regression smoke tests; pair with :meth:`faithfulness_score` + judge for quality.
         """
         notes: List[str] = []
-        ctx_texts = [
-            (getattr(c, "page_content", str(c)) or "") for c in contexts
-        ]
+        ctx_texts = [(getattr(c, "page_content", str(c)) or "") for c in contexts]
         blob = "\n".join(ctx_texts).lower()
         ans = (answer or "").lower()
 
@@ -347,7 +351,9 @@ class RAGEvaluator:
         else:
             faith = self._heuristic_faithfulness(answer, ctx_list)
             rel = _jaccard(question, answer)
-            warnings.append("No judge LLM — using heuristic faithfulness and relevance.")
+            warnings.append(
+                "No judge LLM — using heuristic faithfulness and relevance."
+            )
 
         recall = None
         if ground_truth:

@@ -17,7 +17,7 @@ def load_env(dotenv_path: Optional[str] = None) -> bool:
         True if a file was loaded, False if dotenv is missing or no file found.
     """
     try:
-        from dotenv import load_dotenv, find_dotenv
+        from dotenv import find_dotenv, load_dotenv
     except ImportError:
         return False
     path = dotenv_path or find_dotenv(usecwd=True)

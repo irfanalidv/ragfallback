@@ -119,7 +119,7 @@ class ChunkQualityChecker:
             if len(stripped) >= 80 and not _SENTENCE_END.search(stripped):
                 mid_sentence += 1
             if self.require_sentence_end and stripped:
-                if stripped[-1] not in ".?!…\"":
+                if stripped[-1] not in '.?!…"':
                     violations.append(f"chunk[{i}] may end mid-sentence")
         ms_ratio = mid_sentence / n if n else 0.0
         if ms_ratio >= self.mid_sentence_warn_ratio:
@@ -181,7 +181,9 @@ class ChunkQualityChecker:
         if "overlap" in vtext:
             tips.append("Raise chunk_overlap so neighbors share boundary text.")
         if "mid-sentence" in vtext or "sentence" in vtext:
-            tips.append("Use a splitter that respects sentence boundaries (e.g. RecursiveCharacterTextSplitter).")
+            tips.append(
+                "Use a splitter that respects sentence boundaries (e.g. RecursiveCharacterTextSplitter)."
+            )
         return tips
 
     def auto_fix(

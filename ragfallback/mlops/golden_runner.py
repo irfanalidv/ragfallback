@@ -92,7 +92,9 @@ class GoldenRunner:
         loop = asyncio.get_event_loop()
         invoke = getattr(r, "invoke", None)
         if invoke is not None:
-            return list(await loop.run_in_executor(None, functools.partial(invoke, query)) or [])
+            return list(
+                await loop.run_in_executor(None, functools.partial(invoke, query)) or []
+            )
         return []
 
     def _doc_ids(self, docs: Sequence[Any]) -> List[str]:

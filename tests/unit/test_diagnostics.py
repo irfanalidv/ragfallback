@@ -6,7 +6,11 @@ from pathlib import Path
 import pytest
 from langchain_core.documents import Document
 
-from ragfallback.diagnostics import ChunkQualityChecker, EmbeddingGuard, StaleIndexDetector
+from ragfallback.diagnostics import (
+    ChunkQualityChecker,
+    EmbeddingGuard,
+    StaleIndexDetector,
+)
 from ragfallback.diagnostics.retrieval_health import RetrievalHealthCheck
 from ragfallback.evaluation import RAGEvaluator, recall_at_k
 from ragfallback.exceptions import EmbeddingDimensionError
@@ -15,9 +19,9 @@ from ragfallback.exceptions import EmbeddingDimensionError
 def test_chunk_quality_overlap():
     a = "hello world " * 20
     b = "world " * 5 + "extra content " * 30
-    rep = ChunkQualityChecker(min_chars=10, max_chars=100000, target_overlap_ratio=0.01).check(
-        [a, b]
-    )
+    rep = ChunkQualityChecker(
+        min_chars=10, max_chars=100000, target_overlap_ratio=0.01
+    ).check([a, b])
     assert rep.n_chunks == 2
     assert rep.estimated_overlap_ratio is not None
     assert rep.estimated_overlap_ratio >= 0
@@ -92,7 +96,11 @@ class _MockVSSubstring:
     def as_retriever(self, **kwargs):
         class R:
             def invoke(self, q):
-                return [Document(page_content="Python is a high-level programming language.")]
+                return [
+                    Document(
+                        page_content="Python is a high-level programming language."
+                    )
+                ]
 
         return R()
 

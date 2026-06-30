@@ -16,8 +16,8 @@ Env vars     : NONE required
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Allow running directly from a repository clone without pip install -e .
@@ -86,10 +86,7 @@ def main() -> None:
     from ragfallback.diagnostics import RetrievalHealthCheck
 
     # SQuAD answers are spans within context, so substring match is the correct check
-    probe_dict = {
-        p["question"]: p["ground_truth"][:60]
-        for p in probes[:20]
-    }
+    probe_dict = {p["question"]: p["ground_truth"][:60] for p in probes[:20]}
     health_checker = RetrievalHealthCheck(k=4)
     health_report = health_checker.run_substring_probes(
         store,

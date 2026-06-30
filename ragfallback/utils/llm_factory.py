@@ -12,11 +12,11 @@ def create_open_source_llm(
     model: str = "llama3",
     base_url: Optional[str] = None,
     temperature: float = 0,
-    provider: str = "ollama"
+    provider: str = "ollama",
 ) -> BaseLanguageModel:
     """
     Create an open-source LLM using Ollama (default) or HuggingFace.
-    
+
     Args:
         model: Model name
                For Ollama: "llama3", "llama2", "mistral", "codellama", etc.
@@ -24,15 +24,15 @@ def create_open_source_llm(
         base_url: Ollama base URL (default: "http://localhost:11434") - only for Ollama
         temperature: Temperature for generation (default: 0)
         provider: Provider to use - "ollama" (default) or "huggingface"
-    
+
     Returns:
         BaseLanguageModel instance
-        
+
     Example:
         >>> # Using Ollama (requires Ollama installed)
         >>> from ragfallback.utils.llm_factory import create_open_source_llm
         >>> llm = create_open_source_llm(model="llama3", provider="ollama")
-        
+
         >>> # Using HuggingFace Inference API (no installation needed, free tier)
         >>> llm = create_open_source_llm(
         ...     model="mistralai/Mistral-7B-Instruct-v0.1",
@@ -43,19 +43,15 @@ def create_open_source_llm(
         return create_huggingface_llm(
             model_id=model,
             temperature=temperature,
-            use_inference_api=True  # Use Inference API by default (easier)
+            use_inference_api=True,  # Use Inference API by default (easier)
         )
     else:
         # Default to Ollama
         try:
             from langchain_community.llms import Ollama
-            
+
             base_url = base_url or "http://localhost:11434"
-            return Ollama(
-                model=model,
-                base_url=base_url,
-                temperature=temperature
-            )
+            return Ollama(model=model, base_url=base_url, temperature=temperature)
         except ImportError:
             raise ImportError(
                 "Ollama not installed. Install with: pip install langchain-community. "
@@ -69,15 +65,15 @@ def create_huggingface_llm(
     temperature: float = 0,
     use_inference_api: bool = False,
     api_key: Optional[str] = None,
-    max_length: int = 512
+    max_length: int = 512,
 ) -> BaseLanguageModel:
     """
     Create a HuggingFace LLM using transformers (fully open-source).
-    
+
     Supports two modes:
     1. Local models (use_inference_api=False) - Runs models locally
     2. Inference API (use_inference_api=True) - Uses HuggingFace hosted API (free tier available)
-    
+
     Args:
         model_id: HuggingFace model ID
                   Popular options:
@@ -92,10 +88,10 @@ def create_huggingface_llm(
         api_key: HuggingFace API key (optional, uses HUGGINGFACE_API_KEY env var)
                  Required for Inference API with private models
         max_length: Maximum generation length
-    
+
     Returns:
         BaseLanguageModel instance
-        
+
     Example:
         >>> # Using Inference API (easier, free tier available)
         >>> from ragfallback.utils.llm_factory import create_huggingface_llm
@@ -103,7 +99,7 @@ def create_huggingface_llm(
         ...     model_id="mistralai/Mistral-7B-Instruct-v0.1",
         ...     use_inference_api=True
         ... )
-        
+
         >>> # Using local model (requires transformers and torch)
         >>> llm = create_huggingface_llm(
         ...     model_id="google/flan-t5-base",
@@ -115,7 +111,7 @@ def create_huggingface_llm(
         # Use HuggingFace Inference API (easier, free tier available)
         try:
             from langchain_community.llms import HuggingFaceEndpoint
-            
+
             return HuggingFaceEndpoint(
                 endpoint_url=f"https://api-inference.huggingface.co/pipeline/text-generation/{model_id}",
                 huggingfacehub_api_token=api_key,
@@ -123,7 +119,7 @@ def create_huggingface_llm(
                 temperature=temperature,
                 model_kwargs={
                     "max_length": max_length,
-                }
+                },
             )
         except ImportError:
             raise ImportError(
@@ -134,16 +130,16 @@ def create_huggingface_llm(
         # Use local transformers model
         try:
             from langchain_community.llms import HuggingFacePipeline
-            from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-            
+            from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+
             # Load tokenizer and model
             tokenizer = AutoTokenizer.from_pretrained(model_id)
             model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 device_map=device,
-                torch_dtype="auto" if device == "cuda" else None
+                torch_dtype="auto" if device == "cuda" else None,
             )
-            
+
             # Create pipeline
             pipe = pipeline(
                 "text-generation",
@@ -153,9 +149,9 @@ def create_huggingface_llm(
                 model_kwargs={
                     "temperature": temperature,
                     "max_length": max_length,
-                }
+                },
             )
-            
+
             return HuggingFacePipeline(pipeline=pipe)
         except ImportError:
             raise ImportError(
@@ -190,8 +186,10 @@ def create_mistral_llm(
     """
     if load_dotenv:
         load_env()
-    key = api_key or os.environ.get("MISTRAL_API_KEY") or os.environ.get(
-        "MISTRAL_API_TOKEN"
+    key = (
+        api_key
+        or os.environ.get("MISTRAL_API_KEY")
+        or os.environ.get("MISTRAL_API_TOKEN")
     )
     if not key:
         raise ValueError(
@@ -227,37 +225,33 @@ def create_llm_from_env(
             "MISTRAL_API_KEY not set. Add it to .env or the environment, or use "
             "create_open_source_llm / create_huggingface_llm / create_openai_llm explicitly."
         )
-    return create_mistral_llm(model=model, temperature=temperature, api_key=key, load_dotenv=False)
+    return create_mistral_llm(
+        model=model, temperature=temperature, api_key=key, load_dotenv=False
+    )
 
 
 def create_openai_llm(
-    model: str = "gpt-4o-mini",
-    temperature: float = 0,
-    api_key: Optional[str] = None
+    model: str = "gpt-4o-mini", temperature: float = 0, api_key: Optional[str] = None
 ) -> BaseLanguageModel:
     """
     Create an OpenAI LLM (paid, requires API key).
-    
+
     Args:
         model: OpenAI model name
         temperature: Temperature for generation
         api_key: OpenAI API key (optional, uses OPENAI_API_KEY env var if not provided)
-    
+
     Returns:
         BaseLanguageModel instance
-        
+
     Example:
         >>> from ragfallback.utils.llm_factory import create_openai_llm
         >>> llm = create_openai_llm(model="gpt-4o-mini")
     """
     try:
         from langchain_openai import ChatOpenAI
-        
-        return ChatOpenAI(
-            model=model,
-            temperature=temperature,
-            api_key=api_key
-        )
+
+        return ChatOpenAI(model=model, temperature=temperature, api_key=api_key)
     except ImportError:
         raise ImportError(
             "OpenAI not installed. Install with: pip install langchain-openai"
@@ -267,29 +261,24 @@ def create_openai_llm(
 def create_anthropic_llm(
     model: str = "claude-3-haiku-20240307",
     temperature: float = 0,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
 ) -> BaseLanguageModel:
     """
     Create an Anthropic Claude LLM (paid, requires API key).
-    
+
     Args:
         model: Anthropic model name
         temperature: Temperature for generation
         api_key: Anthropic API key (optional, uses ANTHROPIC_API_KEY env var if not provided)
-    
+
     Returns:
         BaseLanguageModel instance
     """
     try:
         from langchain_anthropic import ChatAnthropic
-        
-        return ChatAnthropic(
-            model=model,
-            temperature=temperature,
-            api_key=api_key
-        )
+
+        return ChatAnthropic(model=model, temperature=temperature, api_key=api_key)
     except ImportError:
         raise ImportError(
             "Anthropic not installed. Install with: pip install langchain-anthropic"
         )
-

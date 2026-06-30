@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import inspect
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,8 +9,8 @@ import pytest
 
 from ragfallback.core.adaptive_retriever import AdaptiveRAGRetriever, QueryResult
 
-
 # ── Fixtures ───────────────────────────────────────────────────────────────────
+
 
 def _fake_doc(text: str = "Some context text.", doc_id: str = "doc1"):
     doc = MagicMock()
@@ -58,14 +57,13 @@ def _make_retriever_instance(min_confidence: float = 0.0):
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
 
+
 class TestAqueryWithFallbackIsAsync:
     """Interface contract."""
 
     def test_is_coroutine_function(self):
         """aquery_with_fallback must be an async def."""
-        assert inspect.iscoroutinefunction(
-            AdaptiveRAGRetriever.aquery_with_fallback
-        )
+        assert inspect.iscoroutinefunction(AdaptiveRAGRetriever.aquery_with_fallback)
 
     def test_coexists_with_sync_method(self):
         """Both sync and async methods exist on the same instance."""
@@ -81,9 +79,7 @@ class TestAqueryWithFallbackReturns:
     async def test_returns_query_result(self):
         """aquery_with_fallback returns a QueryResult."""
         retriever = _make_retriever_instance(min_confidence=0.0)
-        with patch.object(
-            retriever.metrics_collector, "record_success"
-        ), patch.object(
+        with patch.object(retriever.metrics_collector, "record_success"), patch.object(
             retriever.metrics_collector, "record_failure"
         ):
             result = await retriever.aquery_with_fallback("What is the policy?")
@@ -97,9 +93,7 @@ class TestAqueryWithFallbackReturns:
         retriever = _make_retriever_instance(min_confidence=0.0)
         with patch.object(
             retriever.metrics_collector, "record_success"
-        ) as mock_success, patch.object(
-            retriever.metrics_collector, "record_failure"
-        ):
+        ) as mock_success, patch.object(retriever.metrics_collector, "record_failure"):
             await retriever.aquery_with_fallback("What is the return window?")
         mock_success.assert_called_once()
 
@@ -130,9 +124,7 @@ class TestAqueryFallbackToThreadPool:
         # Remove ainvoke from the LLM so the AttributeError path is taken
         del retriever.llm.ainvoke
 
-        with patch.object(
-            retriever.metrics_collector, "record_success"
-        ), patch.object(
+        with patch.object(retriever.metrics_collector, "record_success"), patch.object(
             retriever.metrics_collector, "record_failure"
         ):
             result = await retriever.aquery_with_fallback("fallback test question")
@@ -143,9 +135,7 @@ class TestAqueryFallbackToThreadPool:
         """Async result has the same shape as sync result."""
         retriever = _make_retriever_instance(min_confidence=0.0)
         question = "How does billing work?"
-        with patch.object(
-            retriever.metrics_collector, "record_success"
-        ), patch.object(
+        with patch.object(retriever.metrics_collector, "record_success"), patch.object(
             retriever.metrics_collector, "record_failure"
         ):
             async_result = await retriever.aquery_with_fallback(question)

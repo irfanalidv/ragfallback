@@ -6,7 +6,10 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from ragfallback.mlops.golden_runner import GoldenReport
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +40,9 @@ class BaselineRegistry:
         try:
             self._data = json.loads(self.path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
-            logger.warning("Could not read baselines from %s — starting empty.", self.path)
+            logger.warning(
+                "Could not read baselines from %s — starting empty.", self.path
+            )
             self._data = {}
 
     def _save(self) -> None:
@@ -93,9 +98,7 @@ class BaselineRegistry:
             raise TypeError("report must be a GoldenReport")
         lat_t = latency_threshold if latency_threshold is not None else threshold
         if dataset not in self._data:
-            logger.warning(
-                "No baseline for '%s' — skipping regression check.", dataset
-            )
+            logger.warning("No baseline for '%s' — skipping regression check.", dataset)
             return
         baseline = self.get(dataset)
         lines: List[str] = []
@@ -120,15 +123,9 @@ class BaselineRegistry:
             r.context_precision,
             baseline.get("context_precision"),
         )
-        check_score(
-            "context_recall", r.context_recall, baseline.get("context_recall")
-        )
-        check_score(
-            "recall_at_3", report.recall_at_3, baseline.get("recall_at_3")
-        )
-        check_score(
-            "recall_at_5", report.recall_at_5, baseline.get("recall_at_5")
-        )
+        check_score("context_recall", r.context_recall, baseline.get("context_recall"))
+        check_score("recall_at_3", report.recall_at_3, baseline.get("recall_at_3"))
+        check_score("recall_at_5", report.recall_at_5, baseline.get("recall_at_5"))
 
         try:
             new_lat = float(report.latency_p95_ms)

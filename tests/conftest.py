@@ -49,36 +49,37 @@ def real_embeddings():
     """Real embeddings for testing - uses HuggingFace (local, no API key needed)."""
     try:
         from ragfallback.utils.embedding_factory import create_open_source_embeddings
+
         return create_open_source_embeddings(model_name="all-MiniLM-L6-v2")
     except Exception:
-        pytest.skip("HuggingFace embeddings not available. Install with: pip install sentence-transformers")
+        pytest.skip(
+            "HuggingFace embeddings not available. Install with: pip install sentence-transformers"
+        )
 
 
 @pytest.fixture
 def real_vector_store(real_embeddings):
     """Real vector store for testing - uses FAISS (local, no API key needed)."""
     from langchain_core.documents import Document
+
     from ragfallback.utils.vector_store_factory import create_faiss_vector_store
-    
+
     documents = [
         Document(
             page_content="Acme Corp revenue is $10M annually. The company was founded in 2020.",
-            metadata={"source": "annual_report.pdf"}
+            metadata={"source": "annual_report.pdf"},
         ),
         Document(
             page_content="Acme Corp is a technology company specializing in AI solutions.",
-            metadata={"source": "company_info.pdf"}
+            metadata={"source": "company_info.pdf"},
         ),
         Document(
             page_content="Acme Corp has 50 employees and is headquartered in San Francisco.",
-            metadata={"source": "company_info.pdf"}
+            metadata={"source": "company_info.pdf"},
         ),
     ]
-    
-    return create_faiss_vector_store(
-        documents=documents,
-        embeddings=real_embeddings
-    )
+
+    return create_faiss_vector_store(documents=documents, embeddings=real_embeddings)
 
 
 @pytest.fixture
@@ -87,15 +88,14 @@ def sample_documents():
     return [
         Document(
             page_content="Acme Corp revenue is $10M annually. The company was founded in 2020.",
-            metadata={"source": "annual_report.pdf"}
+            metadata={"source": "annual_report.pdf"},
         ),
         Document(
             page_content="Acme Corp is a technology company specializing in AI solutions.",
-            metadata={"source": "company_info.pdf"}
+            metadata={"source": "company_info.pdf"},
         ),
         Document(
             page_content="Acme Corp has 50 employees and is headquartered in San Francisco.",
-            metadata={"source": "company_info.pdf"}
+            metadata={"source": "company_info.pdf"},
         ),
     ]
-

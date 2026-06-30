@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-06-30
+
+### Added
+- `.pre-commit-config.yaml` + `.github/workflows/lint.yml` — `isort` +
+  `black` + `flake8` are now actually enforced in CI (they were already
+  declared in `requirements-dev.txt` since early versions but never wired
+  into anything). `mypy` runs in the same workflow as an advisory,
+  non-blocking check.
+- `.flake8` config — black is the line-length authority; `E501` is
+  ignored since the only lines still over 100 chars after formatting are
+  intentional (multi-line prompt templates, long error messages) where
+  wrapping would change program behavior, not just formatting.
+- `Lint` badge in README, pointing at the new workflow.
+
+### Changed
+- Applied `isort` + `black` across the entire codebase (26 files) —
+  formatting only, no behavior change. Verified via the full unit suite
+  (96 passed) both before and after.
+- Removed 8 confirmed-unused imports (`flake8 --select=F401`) across
+  `ragfallback/` and test/example files.
+- `ragfallback/mlops/baseline_registry.py` — replaced the pattern of a
+  forward-referenced `"GoldenReport"` type annotation (which `flake8`
+  correctly flagged as `F821 undefined name`, since pyflakes doesn't
+  resolve string annotations against function-local imports) with a
+  proper `TYPE_CHECKING`-guarded module-level import. No circular-import
+  risk: `golden_runner.py` never imports this module. Runtime behavior
+  is unchanged — the function-local imports used for `isinstance()`
+  checks are untouched.
+- README: fixed two markdown hard line breaks that relied on invisible
+  trailing double-spaces (collapsed by the new `trailing-whitespace`
+  pre-commit hook) — replaced with real paragraph breaks so they don't
+  silently regress again on the next formatting pass.
+- `CONTRIBUTING.md` — documented `pre-commit install`, and the
+  rationale for why `mypy` is advisory rather than a merge gate (a few
+  places use runtime duck-typing — e.g. `AdaptiveRAGRetriever` checking
+  `callable(getattr(strategy, "run", None))` — that mypy can't verify
+  without a larger `Protocol`-based refactor; flagged as a known
+  follow-up, not fixed in this pass).
+
 ## [2.2.1] - 2026-06-30
 
 ### Added
@@ -207,12 +246,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Metrics collection and reporting
 - Flexible configuration options
 - Production-ready error handling and logging
-
-
-
-
-
-
-
-
-

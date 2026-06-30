@@ -15,13 +15,16 @@ import tempfile
 from pathlib import Path
 
 import _kb_common
+
 from ragfallback.diagnostics import ContextWindowGuard
 
 
 def main() -> None:
     docs = _kb_common.load_sample_kb()
     persist = Path(tempfile.mkdtemp(prefix="ragfallback_uc4_")) / "chroma"
-    vs = _kb_common.build_chroma_store(docs, persist_directory=persist, collection_name="uc4")
+    vs = _kb_common.build_chroma_store(
+        docs, persist_directory=persist, collection_name="uc4"
+    )
     emb = _kb_common.get_embeddings()
     q = "refund policy authentication"
     retrieved = vs.similarity_search(q, k=12)

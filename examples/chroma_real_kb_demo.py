@@ -33,6 +33,7 @@ warnings.filterwarnings(
 )
 
 import _kb_common
+
 from ragfallback import AdaptiveRAGRetriever, CostTracker, MetricsCollector
 from ragfallback.utils.llm_factory import create_open_source_llm
 
@@ -66,7 +67,9 @@ def _run_demo() -> int:
             collection_name="ragfallback_kb_demo",
         )
     except ImportError as e:
-        print(f"{e}\nInstall: pip install chromadb sentence-transformers", file=sys.stderr)
+        print(
+            f"{e}\nInstall: pip install chromadb sentence-transformers", file=sys.stderr
+        )
         return 1
 
     print("Chroma collection ready (embeddings computed from real file contents).\n")
@@ -118,7 +121,11 @@ def _run_demo() -> int:
         )
     except Exception as e:
         err = str(e).lower()
-        if "connection refused" in err or "11434" in err or "failed to establish" in err:
+        if (
+            "connection refused" in err
+            or "11434" in err
+            or "failed to establish" in err
+        ):
             print(
                 "\n(Ollama not reachable — retrieval-only preview, no paid API keys.)\n"
                 "For full adaptive RAG: install https://ollama.ai and run: ollama pull llama3\n"
@@ -127,7 +134,9 @@ def _run_demo() -> int:
             for i, doc in enumerate(hits, 1):
                 src = (doc.metadata or {}).get("source", "?")
                 body = (doc.page_content or "")[:400].replace("\n", " ")
-                print(f"  [{i}] source={src}\n      {body}{'…' if len(doc.page_content or '') > 400 else ''}\n")
+                print(
+                    f"  [{i}] source={src}\n      {body}{'…' if len(doc.page_content or '') > 400 else ''}\n"
+                )
             return 0
         print(
             "Adaptive RAG failed. Is Ollama running?\n"
@@ -138,7 +147,9 @@ def _run_demo() -> int:
         return 1
 
     print(f"\nAnswer:\n  {result.answer}\n")
-    print(f"Confidence: {result.confidence:.2%} | attempts: {result.attempts} | cost: ${result.cost:.4f}")
+    print(
+        f"Confidence: {result.confidence:.2%} | attempts: {result.attempts} | cost: ${result.cost:.4f}"
+    )
 
     if result.intermediate_steps:
         print("\nIntermediate steps (queries tried):")
@@ -153,7 +164,9 @@ def _run_demo() -> int:
 def main() -> int:
     import logging
 
-    logging.getLogger("ragfallback.strategies.query_variations").setLevel(logging.CRITICAL)
+    logging.getLogger("ragfallback.strategies.query_variations").setLevel(
+        logging.CRITICAL
+    )
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         return _run_demo()

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import HumanMessage
@@ -21,11 +21,11 @@ __all__ = [
 _logger = logging.getLogger(__name__)
 
 _DECOMPOSE_PROMPT = (
-    'You are a question decomposer. Break this complex question into at most {max_hops} '
-    'simpler sub-questions that can each be answered by searching a document store '
-    'independently. Each sub-question should target a single concrete fact.\n\n'
+    "You are a question decomposer. Break this complex question into at most {max_hops} "
+    "simpler sub-questions that can each be answered by searching a document store "
+    "independently. Each sub-question should target a single concrete fact.\n\n"
     'Complex question: "{question}"\n\n'
-    'Return ONLY a JSON array of strings. No explanations, no markdown.\n'
+    "Return ONLY a JSON array of strings. No explanations, no markdown.\n"
     'Example: ["What company acquired Acme Corp?", "What was that company\'s revenue?"]'
 )
 
@@ -255,9 +255,7 @@ class MultiHopFallbackStrategy(FallbackStrategy):
             sub_qs = _extract_list_from_text(text)
             if sub_qs:
                 return sub_qs[: self.max_hops]
-            _logger.warning(
-                "_decompose: JSON parse failed; raw response: %.200s", text
-            )
+            _logger.warning("_decompose: JSON parse failed; raw response: %.200s", text)
         except Exception as exc:
             _logger.error("_decompose: LLM call failed: %s", exc)
         return []
@@ -266,7 +264,11 @@ class MultiHopFallbackStrategy(FallbackStrategy):
         """Return up to ``top_k`` ``page_content`` strings from *retriever*."""
         try:
             invoke = getattr(retriever, "invoke", None)
-            docs = invoke(query) if invoke is not None else retriever.get_relevant_documents(query)
+            docs = (
+                invoke(query)
+                if invoke is not None
+                else retriever.get_relevant_documents(query)
+            )
             if not isinstance(docs, list):
                 return []
             return [
@@ -313,7 +315,11 @@ class MultiHopFallbackStrategy(FallbackStrategy):
         """Combine all hop evidence into a single final answer."""
         evidence_parts = []
         for hop in hops:
-            answer = hop.partial_answer if hop.partial_answer != "NOT_FOUND" else "(not found)"
+            answer = (
+                hop.partial_answer
+                if hop.partial_answer != "NOT_FOUND"
+                else "(not found)"
+            )
             evidence_parts.append(
                 f"Sub-question {hop.hop_number}: {hop.sub_question}\nAnswer: {answer}"
             )

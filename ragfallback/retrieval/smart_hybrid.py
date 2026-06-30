@@ -75,9 +75,7 @@ class SmartThresholdHybridRetriever(BaseRetriever):
         """
         return len(docs) == 0
 
-    def _filter_scored(
-        self, pairs: Sequence[Tuple[Document, float]]
-    ) -> List[Document]:
+    def _filter_scored(self, pairs: Sequence[Tuple[Document, float]]) -> List[Document]:
         if not pairs:
             return []
         scores = [s for _, s in pairs]
@@ -161,7 +159,9 @@ class SmartThresholdHybridRetriever(BaseRetriever):
         """
         bm25 = None
         try:
-            from langchain_community.retrievers import BM25Retriever  # lazy optional dep
+            from langchain_community.retrievers import (
+                BM25Retriever,  # lazy optional dep
+            )
 
             bm25 = BM25Retriever.from_documents(list(documents))
             bm25.k = final_k

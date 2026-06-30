@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import random
 import time
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Set
 
 from langchain_core.vectorstores import VectorStore
@@ -110,7 +110,9 @@ class RetrievalHealthCheck:
                 continue
             r = self.recall_at_k(docs, gold, k=k)
             scores.append(r)
-            per_query.append({"query": q, "k": k, "recall": r, "n_retrieved": len(docs)})
+            per_query.append(
+                {"query": q, "k": k, "recall": r, "n_retrieved": len(docs)}
+            )
 
         mean = sum(scores) / len(scores) if scores else 0.0
         ok = bool(scores) and mean >= min_mean_recall
@@ -156,7 +158,7 @@ class RetrievalHealthCheck:
             n_norm = needle if case_sensitive else needle.lower()
             hit = False
             for d in docs:
-                text = (getattr(d, "page_content", "") or "")
+                text = getattr(d, "page_content", "") or ""
                 t = text if case_sensitive else text.lower()
                 if n_norm in t:
                     hit = True
@@ -167,9 +169,7 @@ class RetrievalHealthCheck:
 
         mean = sum(scores) / len(scores) if scores else 0.0
         ok = bool(scores) and mean >= min_mean_hit_rate
-        avg_ms = (
-            sum(latencies_ms) / len(latencies_ms) if latencies_ms else None
-        )
+        avg_ms = sum(latencies_ms) / len(latencies_ms) if latencies_ms else None
         return RetrievalHealthReport(
             ok=ok,
             cases_run=len(scores),

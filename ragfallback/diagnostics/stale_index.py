@@ -58,9 +58,13 @@ class StaleIndexDetector:
                 out[str(path.resolve())] = _sha256_file(path)
         return out
 
-    def save_manifest(self, mapping: Dict[str, str], path: Optional[Union[str, Path]] = None) -> Path:
+    def save_manifest(
+        self, mapping: Dict[str, str], path: Optional[Union[str, Path]] = None
+    ) -> Path:
         target = Path(path or self.manifest_path or "index_manifest.json")
-        target.write_text(json.dumps(mapping, indent=2, sort_keys=True), encoding="utf-8")
+        target.write_text(
+            json.dumps(mapping, indent=2, sort_keys=True), encoding="utf-8"
+        )
         return target
 
     def load_manifest(self, path: Optional[Union[str, Path]] = None) -> Dict[str, str]:
@@ -98,7 +102,9 @@ class StaleIndexDetector:
 
         ok = not stale and not missing and not new_paths and bool(saved)
         if not saved:
-            msg = "No saved manifest — cannot detect staleness (save one at index time)."
+            msg = (
+                "No saved manifest — cannot detect staleness (save one at index time)."
+            )
             return StaleIndexReport(ok=False, message=msg)
         if ok:
             msg = "Manifest matches current source files."
@@ -198,7 +204,9 @@ class StaleIndexDetector:
         current = self.build_content_manifest(documents, id_key=id_key)
         return self._diff_maps(saved, current)
 
-    def _diff_maps(self, saved: Dict[str, str], current: Dict[str, str]) -> StaleIndexReport:
+    def _diff_maps(
+        self, saved: Dict[str, str], current: Dict[str, str]
+    ) -> StaleIndexReport:
         stale: List[str] = []
         missing: List[str] = []
         new_paths: List[str] = []

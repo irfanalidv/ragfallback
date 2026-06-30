@@ -72,19 +72,14 @@ class CacheMonitor:
 
     def _hash_query(self, query: str, k: int) -> str:
         """Deterministic key for ``(query, k)`` pairs."""
-        return hashlib.md5(
-            f"{query.strip().lower()}:k={k}".encode()
-        ).hexdigest()
+        return hashlib.md5(f"{query.strip().lower()}:k={k}".encode()).hexdigest()
 
     # ── Eviction ───────────────────────────────────────────────────────────────
 
     def _evict_expired(self) -> None:
         """Remove all entries that have exceeded their TTL."""
         now = time.monotonic()
-        expired = [
-            h for h, e in self._cache.items()
-            if now - e.created_at > self._ttl
-        ]
+        expired = [h for h, e in self._cache.items() if now - e.created_at > self._ttl]
         for h in expired:
             del self._cache[h]
             self._stats["evictions"] += 1
@@ -188,6 +183,7 @@ class CacheMonitor:
                 else:
                     import asyncio
                     import functools
+
                     loop = asyncio.get_event_loop()
                     result = await loop.run_in_executor(
                         None, functools.partial(retriever.invoke, query)
@@ -213,9 +209,7 @@ class CacheMonitor:
         hits = int(self._stats["hits"])
         misses = int(self._stats["misses"])
         hit_rate = hits / total if total > 0 else 0.0
-        avg_hit_ms = (
-            self._stats["hit_latency_total"] / hits * 1000 if hits > 0 else 0.0
-        )
+        avg_hit_ms = self._stats["hit_latency_total"] / hits * 1000 if hits > 0 else 0.0
         avg_miss_ms = (
             self._stats["miss_latency_total"] / misses * 1000 if misses > 0 else 0.0
         )

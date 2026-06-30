@@ -31,10 +31,10 @@ if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
 import _kb_common  # noqa: E402
+
 from ragfallback import AdaptiveRAGRetriever  # noqa: E402
 from ragfallback.strategies import QueryVariationsStrategy  # noqa: E402
 from ragfallback.tracking import CostTracker, MetricsCollector  # noqa: E402
-
 
 # Pre-scripted variations for three demo queries. The mock cycles through
 # them deterministically so the retry chain is always visible even offline.
@@ -167,7 +167,9 @@ def main() -> None:
                 print(f"  → attempt {attempt}: '{query}...'  confidence={conf:.0%}")
 
         print(f"  Final answer : {(result.answer or 'Not found')[:120]}")
-        print(f"  Succeeded at : attempt {result.attempts}  confidence={result.confidence:.0%}")
+        print(
+            f"  Succeeded at : attempt {result.attempts}  confidence={result.confidence:.0%}"
+        )
         if result.cost == 0.0:
             print(f"  Cost         : $0.0000 (mock LLM — no real inference)")
         else:
@@ -175,9 +177,11 @@ def main() -> None:
 
     stats = adaptive.metrics_collector.get_stats()
     print("\n" + "─" * 66)
-    print(f"Session stats: {stats['total_queries']} queries  "
-          f"success_rate={stats['success_rate']:.0%}  "
-          f"avg_confidence={stats['avg_confidence']:.0%}")
+    print(
+        f"Session stats: {stats['total_queries']} queries  "
+        f"success_rate={stats['success_rate']:.0%}  "
+        f"avg_confidence={stats['avg_confidence']:.0%}"
+    )
 
     if llm.__class__.__name__ == "MagicMock":
         print(

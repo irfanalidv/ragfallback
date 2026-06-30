@@ -7,7 +7,7 @@ import functools
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from ragfallback.evaluation.rag_evaluator import RAGEvaluator, RAGScore
 
@@ -57,6 +57,7 @@ class RagasHook:
         """Build Ragas EvaluationDataset from dict samples."""
         try:
             from ragas import EvaluationDataset
+
             try:
                 from ragas.dataset_schema import SingleTurnSample
             except ImportError:
@@ -136,6 +137,7 @@ class RagasHook:
             return self._fallback_evaluate(samples)
         try:
             from ragas import evaluate
+
             try:
                 from ragas.metrics import (
                     answer_relevancy,
@@ -143,10 +145,11 @@ class RagasHook:
                     context_recall,
                     faithfulness,
                 )
+
                 answer_relevance_metric = answer_relevancy
             except ImportError:
+                from ragas.metrics import answer_relevance as answer_relevance_metric
                 from ragas.metrics import (
-                    answer_relevance as answer_relevance_metric,
                     context_precision,
                     context_recall,
                     faithfulness,

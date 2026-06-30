@@ -8,14 +8,23 @@ from ragfallback.diagnostics.context_window import (
     ContextWindowReport,
 )
 from ragfallback.diagnostics.embedding_guard import EmbeddingGuard, EmbeddingGuardReport
-from ragfallback.diagnostics.embedding_probe import EmbeddingQualityProbe, EmbeddingQualityReport
+from ragfallback.diagnostics.embedding_probe import (
+    EmbeddingQualityProbe,
+    EmbeddingQualityReport,
+)
 from ragfallback.diagnostics.embedding_validator import (
     EmbeddingValidator,
     EmbeddingValidatorReport,
     infer_vectorstore_embedding_dim,
 )
-from ragfallback.diagnostics.retrieval_health import RetrievalHealthCheck, RetrievalHealthReport
-from ragfallback.diagnostics.schema_sanitizer import sanitize_documents, sanitize_metadata
+from ragfallback.diagnostics.retrieval_health import (
+    RetrievalHealthCheck,
+    RetrievalHealthReport,
+)
+from ragfallback.diagnostics.schema_sanitizer import (
+    sanitize_documents,
+    sanitize_metadata,
+)
 from ragfallback.diagnostics.stale_index import StaleIndexDetector, StaleIndexReport
 
 __all__ = [

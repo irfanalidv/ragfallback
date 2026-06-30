@@ -45,7 +45,9 @@ def test_embedding_guard_with_real_embeddings():
     ok_rep = EmbeddingGuard(expected_dim=384).validate(emb)
     assert ok_rep.ok
 
-    bad = EmbeddingGuard.validate_raw_vectors([[0.1] * 128, [0.2] * 128], expected_dim=384)
+    bad = EmbeddingGuard.validate_raw_vectors(
+        [[0.1] * 128, [0.2] * 128], expected_dim=384
+    )
     assert not bad.ok
 
 
@@ -55,7 +57,10 @@ def test_chunk_quality_on_real_kb():
 
     from ragfallback.diagnostics import ChunkQualityChecker
 
-    texts = [d.page_content for d in _kb_common.load_sample_kb(kb_dir=REPO_ROOT / "examples" / "sample_kb")]
+    texts = [
+        d.page_content
+        for d in _kb_common.load_sample_kb(kb_dir=REPO_ROOT / "examples" / "sample_kb")
+    ]
     rep = ChunkQualityChecker(
         min_chars=30,
         min_words=4,
@@ -76,7 +81,9 @@ def test_context_window_never_overflows(tmp_path):
 
     docs = _kb_common.load_sample_kb(kb_dir=REPO_ROOT / "examples" / "sample_kb")
     persist = tmp_path / "chroma_ctx"
-    vs = _kb_common.build_chroma_store(docs, persist_directory=persist, collection_name="itest_ctx")
+    vs = _kb_common.build_chroma_store(
+        docs, persist_directory=persist, collection_name="itest_ctx"
+    )
     emb = _kb_common.get_embeddings()
     guard = ContextWindowGuard.from_model_name("gpt-3.5-turbo")
     queries = ["refund policy", "API authentication", "rate limits"]

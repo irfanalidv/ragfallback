@@ -11,10 +11,10 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from langchain_core.vectorstores import VectorStore
-from langchain_core.language_models import BaseLanguageModel
 from langchain_core.embeddings import Embeddings
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.language_models import BaseLanguageModel
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.vectorstores import VectorStore
 
 from ragfallback.strategies.base import FallbackStrategy
 from ragfallback.strategies.query_variations import QueryVariationsStrategy
@@ -69,7 +69,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         cost_tracker: Optional[CostTracker] = None,
         metrics_collector: Optional[MetricsCollector] = None,
         enable_logging: bool = True,
-        answer_prompt_template: Optional[str] = None
+        answer_prompt_template: Optional[str] = None,
     ):
         self.vector_store = vector_store
         self.llm = llm
@@ -78,7 +78,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         self.min_confidence = min_confidence
         self.cost_tracker = cost_tracker or CostTracker()
         self.metrics_collector = metrics_collector or MetricsCollector()
-        self.answer_prompt_template = answer_prompt_template or self.DEFAULT_ANSWER_PROMPT
+        self.answer_prompt_template = (
+            answer_prompt_template or self.DEFAULT_ANSWER_PROMPT
+        )
         self.logger = logging.getLogger(__name__) if enable_logging else None
 
         if fallback_strategies:
@@ -94,7 +96,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         question: str,
         context: Optional[Dict[str, Any]] = None,
         return_intermediate_steps: bool = False,
-        enforce_budget: bool = False
+        enforce_budget: bool = False,
     ) -> QueryResult:
         """
         Query with automatic fallback strategies.
@@ -164,7 +166,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                         confidence=0.85,
                         attempts=attempt_num,
                         cost=total_cost,
-                        intermediate_steps=intermediate_steps if return_intermediate_steps else None,
+                        intermediate_steps=(
+                            intermediate_steps if return_intermediate_steps else None
+                        ),
                     )
                 continue
 
@@ -172,7 +176,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                 original_query=question,
                 context=context,
                 attempt=strategy_idx + 1,
-                llm=self.llm
+                llm=self.llm,
             )
 
             for query_idx, query in enumerate(queries):
@@ -182,27 +186,28 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                     break
 
                 if self.logger:
-                    self.logger.info("attempt %d/%d: %s", attempt_num, self.max_attempts, query[:100])
+                    self.logger.info(
+                        "attempt %d/%d: %s", attempt_num, self.max_attempts, query[:100]
+                    )
 
                 docs = self._retrieve_documents(query, context)
 
                 if not docs:
                     if self.logger:
                         self.logger.warning("no documents found for query: %s", query)
-                    intermediate_steps.append({
-                        "attempt": attempt_num,
-                        "query": query,
-                        "documents": 0,
-                        "confidence": 0.0,
-                        "cost": 0.0
-                    })
+                    intermediate_steps.append(
+                        {
+                            "attempt": attempt_num,
+                            "query": query,
+                            "documents": 0,
+                            "confidence": 0.0,
+                            "cost": 0.0,
+                        }
+                    )
                     continue
 
                 answer, source, confidence, cost = self._generate_answer(
-                    question=question,
-                    query=query,
-                    documents=docs,
-                    context=context
+                    question=question, query=query, documents=docs, context=context
                 )
 
                 total_cost += cost
@@ -215,21 +220,28 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                     "answer": answer,
                     "source": source,
                     "confidence": confidence,
-                    "cost": cost
+                    "cost": cost,
                 }
                 intermediate_steps.append(step_data)
 
-                if confidence >= self.min_confidence and answer.lower() not in ["x", "not found", "n/a", "unknown"]:
+                if confidence >= self.min_confidence and answer.lower() not in [
+                    "x",
+                    "not found",
+                    "n/a",
+                    "unknown",
+                ]:
                     if self.logger:
                         self.logger.debug(
-                            "attempt %d succeeded (confidence %.2f)", attempt_num, confidence
+                            "attempt %d succeeded (confidence %.2f)",
+                            attempt_num,
+                            confidence,
                         )
                     self.metrics_collector.record_success(
                         attempts=attempt_num,
                         confidence=confidence,
                         cost=total_cost,
                         latency_ms=latency_ms,
-                        strategy_used=strategy.get_name()
+                        strategy_used=strategy.get_name(),
                     )
                     return QueryResult(
                         answer=answer,
@@ -237,7 +249,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                         confidence=confidence,
                         attempts=attempt_num,
                         cost=total_cost,
-                        intermediate_steps=intermediate_steps if return_intermediate_steps else None
+                        intermediate_steps=(
+                            intermediate_steps if return_intermediate_steps else None
+                        ),
                     )
 
         latency_ms = (time.time() - start_time) * 1000
@@ -249,7 +263,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             )
 
         if intermediate_steps:
-            best_attempt = max(intermediate_steps, key=lambda x: x.get("confidence", 0.0))
+            best_attempt = max(
+                intermediate_steps, key=lambda x: x.get("confidence", 0.0)
+            )
             best_answer = best_attempt.get("answer", "No answer found")
             best_source = best_attempt.get("source", "")
             best_confidence = best_attempt.get("confidence", 0.0)
@@ -262,7 +278,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             attempts=len(intermediate_steps),
             cost=total_cost,
             latency_ms=latency_ms,
-            strategy_used=self.strategies[0].get_name() if self.strategies else "unknown"
+            strategy_used=(
+                self.strategies[0].get_name() if self.strategies else "unknown"
+            ),
         )
 
         return QueryResult(
@@ -271,7 +289,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             confidence=best_confidence,
             attempts=len(intermediate_steps) or 1,
             cost=total_cost,
-            intermediate_steps=intermediate_steps if return_intermediate_steps else None
+            intermediate_steps=(
+                intermediate_steps if return_intermediate_steps else None
+            ),
         )
 
     async def aquery_with_fallback(
@@ -355,7 +375,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                         confidence=0.85,
                         attempts=attempt_num,
                         cost=total_cost,
-                        intermediate_steps=intermediate_steps if return_intermediate_steps else None,
+                        intermediate_steps=(
+                            intermediate_steps if return_intermediate_steps else None
+                        ),
                     )
                 continue
 
@@ -374,7 +396,10 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
 
                 if self.logger:
                     self.logger.info(
-                        "async attempt %d/%d: %s", attempt_num, self.max_attempts, query[:100]
+                        "async attempt %d/%d: %s",
+                        attempt_num,
+                        self.max_attempts,
+                        query[:100],
                     )
 
                 docs = await self._aretrieve_documents(query, context)
@@ -383,8 +408,13 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                     if self.logger:
                         self.logger.warning("no documents found for query: %s", query)
                     intermediate_steps.append(
-                        {"attempt": attempt_num, "query": query,
-                         "documents": 0, "confidence": 0.0, "cost": 0.0}
+                        {
+                            "attempt": attempt_num,
+                            "query": query,
+                            "documents": 0,
+                            "confidence": 0.0,
+                            "cost": 0.0,
+                        }
                     )
                     continue
 
@@ -410,7 +440,10 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                 intermediate_steps.append(step_data)
 
                 if confidence >= self.min_confidence and answer.lower() not in [
-                    "x", "not found", "n/a", "unknown"
+                    "x",
+                    "not found",
+                    "n/a",
+                    "unknown",
                 ]:
                     if self.logger:
                         self.logger.debug(
@@ -431,7 +464,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                         confidence=confidence,
                         attempts=attempt_num,
                         cost=total_cost,
-                        intermediate_steps=intermediate_steps if return_intermediate_steps else None,
+                        intermediate_steps=(
+                            intermediate_steps if return_intermediate_steps else None
+                        ),
                     )
 
         latency_ms = (loop.time() - start) * 1000
@@ -443,7 +478,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             )
 
         if intermediate_steps:
-            best_attempt = max(intermediate_steps, key=lambda x: x.get("confidence", 0.0))
+            best_attempt = max(
+                intermediate_steps, key=lambda x: x.get("confidence", 0.0)
+            )
             best_answer = best_attempt.get("answer", "No answer found")
             best_source = best_attempt.get("source", "")
             best_confidence = best_attempt.get("confidence", 0.0)
@@ -456,7 +493,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             attempts=len(intermediate_steps),
             cost=total_cost,
             latency_ms=latency_ms,
-            strategy_used=self.strategies[0].get_name() if self.strategies else "unknown",
+            strategy_used=(
+                self.strategies[0].get_name() if self.strategies else "unknown"
+            ),
         )
 
         return QueryResult(
@@ -465,7 +504,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             confidence=best_confidence,
             attempts=len(intermediate_steps) or 1,
             cost=total_cost,
-            intermediate_steps=intermediate_steps if return_intermediate_steps else None,
+            intermediate_steps=(
+                intermediate_steps if return_intermediate_steps else None
+            ),
         )
 
     async def _aretrieve_documents(
@@ -520,7 +561,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                     None, functools.partial(self.llm.invoke, messages)
                 )
 
-            answer_text = response.content if hasattr(response, "content") else str(response)
+            answer_text = (
+                response.content if hasattr(response, "content") else str(response)
+            )
 
             if hasattr(response, "response_metadata"):
                 metadata = response.response_metadata
@@ -547,28 +590,24 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         cost = self.cost_tracker.get_last_cost()
         return answer, source, confidence, cost
 
-    def _retrieve_documents(
-        self,
-        query: str,
-        context: Dict[str, Any]
-    ) -> List:
+    def _retrieve_documents(self, query: str, context: Dict[str, Any]) -> List:
         """Query the store, applying any metadata filters from context."""
         try:
             search_kwargs = self._build_search_kwargs(context)
             retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
             invoke = getattr(retriever, "invoke", None)
-            return invoke(query) if invoke is not None else retriever.get_relevant_documents(query)
+            return (
+                invoke(query)
+                if invoke is not None
+                else retriever.get_relevant_documents(query)
+            )
         except Exception as e:
             if self.logger:
                 self.logger.error("error retrieving documents: %s", e)
             return []
 
     def _generate_answer(
-        self,
-        question: str,
-        query: str,
-        documents: List,
-        context: Dict[str, Any]
+        self, question: str, query: str, documents: List, context: Dict[str, Any]
     ) -> Tuple[str, str, float, float]:
         """Return (answer, source, confidence, cost) for one retrieval attempt."""
         docs_text = self._format_documents(documents)
@@ -577,29 +616,28 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         with self.cost_tracker.track(operation="answer_generation"):
             messages = [
                 SystemMessage(content=self.answer_prompt_template),
-                HumanMessage(content=prompt)
+                HumanMessage(content=prompt),
             ]
             response = self.llm.invoke(messages)
-            answer_text = response.content if hasattr(response, 'content') else str(response)
+            answer_text = (
+                response.content if hasattr(response, "content") else str(response)
+            )
 
-            if hasattr(response, 'response_metadata'):
+            if hasattr(response, "response_metadata"):
                 metadata = response.response_metadata
-                if 'token_usage' in metadata:
-                    usage = metadata['token_usage']
+                if "token_usage" in metadata:
+                    usage = metadata["token_usage"]
                     self.cost_tracker.record_tokens(
-                        input_tokens=usage.get('prompt_tokens', 0),
-                        output_tokens=usage.get('completion_tokens', 0),
-                        model=getattr(self.llm, 'model_name', 'gpt-4')
+                        input_tokens=usage.get("prompt_tokens", 0),
+                        output_tokens=usage.get("completion_tokens", 0),
+                        model=getattr(self.llm, "model_name", "gpt-4"),
                     )
 
         answer, source = self._parse_answer(answer_text)
 
         scorer = ConfidenceScorer(llm=self.llm)
         confidence = scorer.score(
-            question=question,
-            answer=answer,
-            documents=documents,
-            context=context
+            question=question, answer=answer, documents=documents, context=context
         )
 
         cost = self.cost_tracker.get_last_cost()
@@ -608,16 +646,17 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
     def _format_documents(self, documents: List) -> str:
         formatted = []
         for i, doc in enumerate(documents, 1):
-            content = doc.page_content if hasattr(doc, 'page_content') else str(doc)
-            source = doc.metadata.get('source', 'Unknown') if hasattr(doc, 'metadata') else 'Unknown'
+            content = doc.page_content if hasattr(doc, "page_content") else str(doc)
+            source = (
+                doc.metadata.get("source", "Unknown")
+                if hasattr(doc, "metadata")
+                else "Unknown"
+            )
             formatted.append(f"Document {i} (from {source}):\n{content}\n")
         return "\n".join(formatted)
 
     def _build_answer_prompt(
-        self,
-        question: str,
-        docs_text: str,
-        context: Dict[str, Any]
+        self, question: str, docs_text: str, context: Dict[str, Any]
     ) -> str:
         context_str = ""
         if context:
@@ -635,7 +674,7 @@ Return your answer in JSON format: {{"answer": "...", "source": "..."}}"""
 
     def _parse_answer(self, answer_text: str) -> Tuple[str, str]:
         """Extract the answer field from JSON, falling back to raw text."""
-        json_match = re.search(r'\{[^}]+\}', answer_text, re.DOTALL)
+        json_match = re.search(r"\{[^}]+\}", answer_text, re.DOTALL)
         if json_match:
             try:
                 parsed = json.loads(json_match.group())
@@ -648,7 +687,7 @@ Return your answer in JSON format: {{"answer": "...", "source": "..."}}"""
     def _build_search_kwargs(self, context: Dict[str, Any]) -> Dict[str, Any]:
         kwargs: Dict[str, Any] = {"k": 5}
 
-        if hasattr(self.vector_store, 'filter'):
+        if hasattr(self.vector_store, "filter"):
             filters = {}
             for key, value in context.items():
                 if key in ["company_key", "unique_id", "filter_id"]:

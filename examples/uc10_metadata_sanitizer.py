@@ -26,8 +26,9 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-from langchain_core.documents import Document  # noqa: E402
 import _kb_common  # noqa: E402
+from langchain_core.documents import Document  # noqa: E402
+
 from ragfallback.diagnostics import sanitize_documents  # noqa: E402
 
 
@@ -47,7 +48,11 @@ def main() -> None:
         Document(
             page_content="Python lists are mutable ordered sequences of elements.",
             metadata={
-                "tags": ["python", "data-structures", "lists"],  # list — rejected by Chroma
+                "tags": [
+                    "python",
+                    "data-structures",
+                    "lists",
+                ],  # list — rejected by Chroma
                 "score": 0.95,
                 "source": "python_guide.txt",
             },
@@ -55,15 +60,18 @@ def main() -> None:
         Document(
             page_content="Dictionaries map hashable keys to arbitrary values.",
             metadata={
-                "nested": {"author": "Jane Doe", "year": 2023},  # nested dict — rejected
-                "raw_bytes": b"binary content here",              # bytes — rejected
+                "nested": {
+                    "author": "Jane Doe",
+                    "year": 2023,
+                },  # nested dict — rejected
+                "raw_bytes": b"binary content here",  # bytes — rejected
                 "source": "python_guide.txt",
             },
         ),
         Document(
             page_content="Functions are defined with the def keyword and return values.",
             metadata={
-                "page": None,        # None — handled inconsistently across stores
+                "page": None,  # None — handled inconsistently across stores
                 "reviewed": True,
                 "source": "python_guide.txt",
             },
@@ -98,10 +106,12 @@ def main() -> None:
     )
     results = vs_clean.similarity_search("What are Python lists?", k=2)
     print(f"  Inserted {len(clean_docs)} docs. Retrieved {len(results)} result(s). ✓")
-    print(f"\n  Metadata sanitized: {len(clean_docs)} document(s) ready for any vector store.")
+    print(
+        f"\n  Metadata sanitized: {len(clean_docs)} document(s) ready for any vector store."
+    )
 
     print("\nKey transformations applied by sanitize_documents():")
-    print("  list / tuple  → JSON string  (e.g. '[\"python\", \"lists\"]')")
+    print('  list / tuple  → JSON string  (e.g. \'["python", "lists"]\')')
     print("  dict          → flattened keys with dot notation  (nested.key → value)")
     print("  bytes         → UTF-8 decoded string")
     print("  None          → preserved as None (most stores handle scalar None)")

@@ -27,10 +27,10 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-from langchain_core.documents import Document  # noqa: E402
 import _kb_common  # noqa: E402
-from ragfallback.diagnostics import OverlappingContextStitcher  # noqa: E402
+from langchain_core.documents import Document  # noqa: E402
 
+from ragfallback.diagnostics import OverlappingContextStitcher  # noqa: E402
 
 # Six chunks from the same HR policy document — split across top-k retrieval
 _HR_CHUNKS = [
@@ -64,7 +64,9 @@ def main() -> None:
     # Dense retrieval skips chunk 1 (adjacent to chunk 0) and returns
     # non-consecutive indices, fragmenting the answer across top-k.
     persist = Path(tempfile.mkdtemp(prefix="ragfallback_uc8_")) / "chroma"
-    vs = _kb_common.build_chroma_store(docs, persist_directory=persist, collection_name="uc8")
+    vs = _kb_common.build_chroma_store(
+        docs, persist_directory=persist, collection_name="uc8"
+    )
 
     query = "How many days of annual leave do employees get?"
     retrieved = vs.similarity_search(query, k=3)
@@ -75,7 +77,9 @@ def main() -> None:
         idx = d.metadata.get("chunk_index", "?")
         print(f"  [chunk {idx}] {d.page_content[:70]}...")
 
-    stitcher = OverlappingContextStitcher(chunk_index_key="chunk_index", source_key="source")
+    stitcher = OverlappingContextStitcher(
+        chunk_index_key="chunk_index", source_key="source"
+    )
     stitched = stitcher.stitch(retrieved)
 
     print(f"\n--- After stitching: {len(stitched)} merged context block(s) ---")
@@ -94,7 +98,9 @@ def main() -> None:
 
     print("\n--- expand_neighbor_indices (radius=1) ---")
     expanded = stitcher.expand_neighbor_indices(retrieved[:1], neighbor_radius=1)
-    print(f"  Input: 1 chunk → expanded to {len(expanded)} chunk(s) (neighbors included)")
+    print(
+        f"  Input: 1 chunk → expanded to {len(expanded)} chunk(s) (neighbors included)"
+    )
 
 
 if __name__ == "__main__":

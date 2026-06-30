@@ -32,7 +32,9 @@ def _doc_id(text: str, prefix: str = "doc") -> str:
     return f"{prefix}_{h}"
 
 
-def build_squad_samples(n: int = 75) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def build_squad_samples(
+    n: int = 75,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Load SQuAD validation split.
 
@@ -104,7 +106,9 @@ def build_squad_samples(n: int = 75) -> Tuple[List[Dict[str, Any]], List[Dict[st
     return samples, docs_meta
 
 
-def build_sciq_samples(n: int = 25) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def build_sciq_samples(
+    n: int = 25,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Load SciQ test split — science domain, harder than SQuAD.
 

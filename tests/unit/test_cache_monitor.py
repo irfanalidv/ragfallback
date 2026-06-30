@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
 
-import pytest
-
-from ragfallback.tracking.cache_monitor import CacheMonitor, CacheStats
-
+from ragfallback.tracking.cache_monitor import CacheMonitor
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _make_retriever(return_value=None):
     """Return a MagicMock retriever whose invoke() returns return_value."""
@@ -20,6 +18,7 @@ def _make_retriever(return_value=None):
 
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
+
 
 class TestCacheMonitorMiss:
     """First-access behaviour (cache miss)."""
@@ -95,7 +94,7 @@ class TestTTLEviction:
         time.sleep(0.1)  # exceed TTL
         wrapped.invoke("ttl query")
         stats = monitor.get_stats()
-        assert stats.cache_misses == 2   # both calls were misses
+        assert stats.cache_misses == 2  # both calls were misses
         assert stats.cache_hits == 0
 
 
@@ -128,9 +127,9 @@ class TestStats:
         """hit_rate = hits / total_queries."""
         monitor = CacheMonitor()
         wrapped = monitor.wrap_retriever(_make_retriever())
-        wrapped.invoke("q")       # miss
-        wrapped.invoke("q")       # hit
-        wrapped.invoke("q")       # hit
+        wrapped.invoke("q")  # miss
+        wrapped.invoke("q")  # hit
+        wrapped.invoke("q")  # hit
         stats = monitor.get_stats()
         assert abs(stats.hit_rate - 2 / 3) < 1e-9
 
@@ -183,7 +182,13 @@ class TestCacheStatsAsDict:
         wrapped.invoke("x")
         d = monitor.get_stats().as_dict()
         expected_keys = {
-            "total_queries", "cache_hits", "cache_misses", "hit_rate",
-            "avg_hit_latency_ms", "avg_miss_latency_ms", "cached_entries", "evictions",
+            "total_queries",
+            "cache_hits",
+            "cache_misses",
+            "hit_rate",
+            "avg_hit_latency_ms",
+            "avg_miss_latency_ms",
+            "cached_entries",
+            "evictions",
         }
         assert expected_keys == set(d.keys())

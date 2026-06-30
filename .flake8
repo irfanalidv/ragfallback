@@ -1,0 +1,9 @@
+[flake8]
+max-line-length = 100
+# black is the source of truth for code line length. The only lines left
+# over 100 chars after black + isort are intentional (multi-line prompt
+# templates, long error messages, URLs) — wrapping them would change
+# program behavior, not just formatting, so E501 is ignored rather than
+# silenced line-by-line with noqa comments.
+extend-ignore = E501
+exclude = .git,__pycache__,build,dist,*.egg-info,examples,tests

@@ -27,6 +27,7 @@ if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
 import _kb_common  # noqa: E402
+
 from ragfallback.diagnostics import EmbeddingQualityProbe  # noqa: E402
 
 # General business text — all-MiniLM was trained on this kind of content
@@ -82,14 +83,16 @@ def main() -> None:
     probe = EmbeddingQualityProbe(min_mean_top1=0.25, max_spread=0.15)
 
     _run_probe(
-        probe, emb,
+        probe,
+        emb,
         label="General business HR text",
         query="What is the company leave policy?",
         snippets=_GENERAL_SNIPPETS,
     )
 
     _run_probe(
-        probe, emb,
+        probe,
+        emb,
         label="Specialized medical/legal jargon",
         query="What is the recommended treatment protocol?",
         snippets=_SPECIALIZED_SNIPPETS,
@@ -97,12 +100,8 @@ def main() -> None:
 
     print("\n" + "-" * 60)
     print("Interpretation:")
-    print(
-        "  - ok=True  → model similarity distribution looks healthy for this domain."
-    )
-    print(
-        "  - ok=False → poor domain fit detected. Consider:"
-    )
+    print("  - ok=True  → model similarity distribution looks healthy for this domain.")
+    print("  - ok=False → poor domain fit detected. Consider:")
     print("      * domain-specific model (e.g. BioBERT, LegalBERT)")
     print("      * fine-tuning on domain text")
     print("      * hybrid search (BM25 + dense) — see UC-5")

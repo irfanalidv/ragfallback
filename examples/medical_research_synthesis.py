@@ -13,11 +13,14 @@ Env vars     : NONE required
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 
 _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(_repo_root, "ragfallback")) and _repo_root not in sys.path:
+if (
+    os.path.isdir(os.path.join(_repo_root, "ragfallback"))
+    and _repo_root not in sys.path
+):
     sys.path.insert(0, _repo_root)
 
 _examples_dir = os.path.dirname(os.path.abspath(__file__))
@@ -53,10 +56,12 @@ def main() -> None:
         ctx_list = (row.get("context") or {}).get("contexts") or []
         for ctx in ctx_list:
             if ctx and len(ctx) > 100:
-                documents.append(Document(
-                    page_content=ctx[:600],
-                    metadata={"source": "pubmed"},
-                ))
+                documents.append(
+                    Document(
+                        page_content=ctx[:600],
+                        metadata={"source": "pubmed"},
+                    )
+                )
         if row.get("question"):
             test_questions.append(row["question"])
         if len(documents) >= 60:
@@ -66,7 +71,9 @@ def main() -> None:
         print("SKIP: No usable abstract segments loaded from dataset")
         sys.exit(0)
 
-    test_question = test_questions[0] if test_questions else "What are the treatment outcomes?"
+    test_question = (
+        test_questions[0] if test_questions else "What are the treatment outcomes?"
+    )
 
     print(f"  Loaded {len(documents)} real PubMed abstract segments")
     print(f"  Example: {documents[0].page_content[:100]}...")
@@ -76,7 +83,9 @@ def main() -> None:
 
     checker = ChunkQualityChecker(min_chars=80)
     report = checker.check(documents)
-    print(f"\nChunkQualityChecker: {report.n_chunks} segments  Violations: {len(report.violations)}")
+    print(
+        f"\nChunkQualityChecker: {report.n_chunks} segments  Violations: {len(report.violations)}"
+    )
 
     import _kb_common
 
@@ -93,7 +102,11 @@ def main() -> None:
     print(f"  Indexed {len(documents)} real abstract segments")
 
     print("\nRetrieval demo (no LLM required)...")
-    questions = [test_question, "What are the side effects?", "What does the study conclude?"]
+    questions = [
+        test_question,
+        "What are the side effects?",
+        "What does the study conclude?",
+    ]
     retriever = vs.as_retriever(search_kwargs={"k": 3})
     for q in questions[:2]:
         hits = retriever.invoke(q)

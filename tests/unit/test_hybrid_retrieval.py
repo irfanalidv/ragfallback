@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,7 +9,6 @@ from langchain_core.documents import Document
 
 from ragfallback.retrieval.failover import FailoverRetriever
 from ragfallback.retrieval.smart_hybrid import SmartThresholdHybridRetriever
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -131,14 +129,14 @@ def test_from_documents_raises_import_error_without_rank_bm25() -> None:
     """from_documents must raise ImportError with pip install hint if rank_bm25 absent."""
     store = _make_dense_store([])
     docs = [_doc("doc")]
-    with patch(
-        "ragfallback.retrieval.smart_hybrid.logger"
-    ):  # silence logging
+    with patch("ragfallback.retrieval.smart_hybrid.logger"):  # silence logging
         with patch(
             "langchain_community.retrievers.BM25Retriever.from_documents",
             side_effect=ImportError("no module named rank_bm25"),
         ):
-            with pytest.raises(ImportError, match="pip install ragfallback\\[hybrid\\]"):
+            with pytest.raises(
+                ImportError, match="pip install ragfallback\\[hybrid\\]"
+            ):
                 SmartThresholdHybridRetriever.from_documents(docs, vectorstore=store)
 
 
@@ -205,7 +203,9 @@ def test_failover_min_results_threshold() -> None:
     fallback = _make_retriever_with_invoke(["fallback a", "fallback b"])
     fb = FailoverRetriever(primary=primary, fallback=fallback, min_results=2)
     docs = fb.invoke("query")
-    assert all(d.metadata["ragfallback_retrieval_source"] == "secondary_failover" for d in docs)
+    assert all(
+        d.metadata["ragfallback_retrieval_source"] == "secondary_failover" for d in docs
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -254,8 +254,6 @@ def test_failover_returns_empty_when_both_fail() -> None:
     primary.invoke.side_effect = RuntimeError("primary down")
     fallback = MagicMock()
     fallback.invoke.side_effect = RuntimeError("fallback down too")
-    fb = FailoverRetriever(
-        primary=primary, fallback=fallback, log_errors=False
-    )
+    fb = FailoverRetriever(primary=primary, fallback=fallback, log_errors=False)
     docs = fb.invoke("query")
     assert docs == []

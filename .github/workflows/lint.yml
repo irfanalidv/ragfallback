@@ -1,0 +1,44 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: pre-commit/action@v3.0.1
+
+  # mypy is advisory, not a merge gate. The codebase uses a couple of
+  # deliberate runtime duck-typing patterns (e.g. AdaptiveRAGRetriever
+  # checking `callable(getattr(strategy, "run", None))` for strategies
+  # that aren't declared on the FallbackStrategy base class) that mypy
+  # can't verify statically without a larger Protocol-based refactor.
+  # This job surfaces real regressions in PR checks without blocking
+  # merges on findings nobody has triaged yet — see CONTRIBUTING.md.
+  mypy:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package + mypy
+        run: |
+          pip install -e ".[chroma,huggingface,hybrid]"
+          pip install mypy
+
+      - name: Run mypy (advisory — failures shown, do not block)
+        run: mypy ragfallback/ --ignore-missing-imports

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 from unittest.mock import MagicMock
 
 # Allow running directly from a repository clone without pip install -e .
@@ -27,7 +27,11 @@ if (_repo_root / "ragfallback").is_dir() and str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
 import _kb_common  # noqa: E402
-from ragfallback.strategies import HopResult, MultiHopFallbackStrategy, MultiHopResult  # noqa: E402
+
+from ragfallback.strategies import (  # noqa: E402
+    MultiHopFallbackStrategy,
+    MultiHopResult,
+)
 
 
 def _make_mock_llm() -> Any:
@@ -94,9 +98,7 @@ def main() -> None:
         print("[INFO] Using Ollama (llama2).\n")
         mode = "live"
 
-    question = (
-        "What is the refund window for API keys that have hit rate limits?"
-    )
+    question = "What is the refund window for API keys that have hit rate limits?"
     print(f"Question: {question}\n")
 
     strategy = MultiHopFallbackStrategy(max_hops=2, top_k=4)
@@ -125,7 +127,9 @@ def main() -> None:
     print("-" * 60)
     print("FallbackStrategy contract — generate_queries(attempt=2):")
     mock_decompose_llm = _make_mock_llm()  # fresh responses
-    sub_qs = strategy.generate_queries(question, context={}, attempt=2, llm=mock_decompose_llm)
+    sub_qs = strategy.generate_queries(
+        question, context={}, attempt=2, llm=mock_decompose_llm
+    )
     for i, q in enumerate(sub_qs, 1):
         print(f"  Sub-question {i}: {q}")
 

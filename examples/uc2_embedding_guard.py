@@ -12,6 +12,7 @@ Env vars     : NONE required
 from __future__ import annotations
 
 import _kb_common
+
 from ragfallback.diagnostics import EmbeddingGuard
 
 

@@ -30,6 +30,7 @@ if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
 import _kb_common  # noqa: E402
+
 from ragfallback.diagnostics import ChunkQualityChecker  # noqa: E402
 
 
@@ -67,9 +68,9 @@ def main() -> None:
 
     print("\nRunning ChunkQualityChecker with production thresholds...")
     checker = ChunkQualityChecker(
-        min_chars=80,          # flag anything shorter than a sentence
-        max_chars=4000,        # flag unusually long passages
-        min_words=8,           # flag stubs
+        min_chars=80,  # flag anything shorter than a sentence
+        max_chars=4000,  # flag unusually long passages
+        min_words=8,  # flag stubs
     )
     report = checker.check(texts)
     print(report.summary())
@@ -96,9 +97,9 @@ def main() -> None:
         # Inject a synthetic bad chunk to demonstrate the detection path
         print("\n  Injecting 3 synthetic bad chunks to demonstrate detection...")
         synthetic_bad = texts + [
-            "Too short.",                           # 10 chars
-            "incomplete sentence that just cuts",   # 34 chars, no period
-            texts[0][:50] + " " + texts[0][:50],   # near-duplicate
+            "Too short.",  # 10 chars
+            "incomplete sentence that just cuts",  # 34 chars, no period
+            texts[0][:50] + " " + texts[0][:50],  # near-duplicate
         ]
         bad_report = checker.check(synthetic_bad)
         print(f"  After injection: {bad_report.summary()}")
@@ -128,7 +129,9 @@ def main() -> None:
         print("  Re-check: 0 violations after auto_fix ✓")
     else:
         remaining = len(fixed_report.violations)
-        print(f"  Re-check: {remaining} violation(s) remain (auto_fix is conservative by design)")
+        print(
+            f"  Re-check: {remaining} violation(s) remain (auto_fix is conservative by design)"
+        )
 
     print("\n✅  UC-3 demo complete.")
     print("    Dataset: SQuAD (Wikipedia) — CC BY-SA 4.0")

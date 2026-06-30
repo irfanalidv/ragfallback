@@ -96,7 +96,10 @@ class FailoverRetriever(BaseRetriever):
                 return [
                     Document(
                         page_content=d.page_content,
-                        metadata={**(d.metadata or {}), "ragfallback_retrieval_source": "primary"},
+                        metadata={
+                            **(d.metadata or {}),
+                            "ragfallback_retrieval_source": "primary",
+                        },
                     )
                     for d in docs
                 ]
@@ -108,13 +111,13 @@ class FailoverRetriever(BaseRetriever):
             )
         except Exception as exc:
             if self.log_errors:
-                logger.warning("FailoverRetriever: primary raised — switching to fallback: %s", exc)
+                logger.warning(
+                    "FailoverRetriever: primary raised — switching to fallback: %s", exc
+                )
 
         try:
             docs = self._invoke_retriever(self._effective_fallback, query)
-            logger.debug(
-                "FailoverRetriever: fallback returned %d doc(s).", len(docs)
-            )
+            logger.debug("FailoverRetriever: fallback returned %d doc(s).", len(docs))
             return [
                 Document(
                     page_content=d.page_content,
