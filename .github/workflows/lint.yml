@@ -27,7 +27,6 @@ jobs:
   # merges on findings nobody has triaged yet — see CONTRIBUTING.md.
   mypy:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -38,7 +37,14 @@ jobs:
       - name: Install package + mypy
         run: |
           pip install -e ".[chroma,huggingface,hybrid]"
-          pip install mypy
+          pip install "mypy>=1.5.0,<2"
 
-      - name: Run mypy (advisory — failures shown, do not block)
-        run: mypy ragfallback/ --ignore-missing-imports
+      - name: Run mypy (advisory — findings in log, job stays green)
+        run: |
+          set +e
+          mypy ragfallback/ --ignore-missing-imports
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::notice title=mypy (advisory)::Found type-check findings above — advisory only, does not block merges. See CONTRIBUTING.md."
+          fi
+          exit 0
