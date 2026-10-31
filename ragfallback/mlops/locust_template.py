@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +65,7 @@ class RAGLoadUser(HttpUser):
 def generate_locustfile(output_path: str, endpoint: str) -> None:
     """Write a Locust scenario to ``output_path`` targeting ``endpoint`` as default host hint."""
     content = _LOCUST_TEMPLATE.format(output_path=output_path, endpoint=endpoint)
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(content)
+    Path(output_path).write_text(content, encoding="utf-8")
     logger.info(
         "Locust file written to %s. Run with: locust -f %s --host %s",
         output_path,

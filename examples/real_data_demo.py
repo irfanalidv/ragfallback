@@ -16,7 +16,6 @@ Env vars     : NONE required
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -29,7 +28,7 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-import _kb_common  # noqa: E402
+import _kb_common
 
 
 def main() -> None:
@@ -73,7 +72,7 @@ def main() -> None:
     print(f"  Status : {'OK' if val_result.ok else 'FAIL'}")
     print(f"  Message: {val_result.message}")
 
-    chroma_path = Path(os.path.dirname(__file__)) / ".chroma_squad_demo"
+    chroma_path = Path(__file__).parent / ".chroma_squad_demo"
     print(f"\nBuilding ChromaDB index ({len(docs)} real Wikipedia passages)...")
     store = _kb_common.build_chroma_store(
         docs,

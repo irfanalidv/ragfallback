@@ -26,9 +26,9 @@ _repo_root = Path(__file__).resolve().parent.parent
 if (_repo_root / "ragfallback").is_dir() and str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-import _kb_common  # noqa: E402
+import _kb_common
 
-from ragfallback.strategies import (  # noqa: E402
+from ragfallback.strategies import (
     MultiHopFallbackStrategy,
     MultiHopResult,
 )

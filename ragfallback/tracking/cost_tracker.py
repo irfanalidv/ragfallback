@@ -3,6 +3,7 @@
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import ClassVar
 
 
 @dataclass
@@ -23,7 +24,7 @@ class CostTracker:
     """
 
     # Default pricing (per 1M tokens)
-    DEFAULT_PRICING = {
+    DEFAULT_PRICING: ClassVar[dict[str, ModelPricing]] = {
         "gpt-4": ModelPricing("gpt-4", 30.0, 60.0),
         "gpt-4-turbo": ModelPricing("gpt-4-turbo", 10.0, 30.0),
         "gpt-3.5-turbo": ModelPricing("gpt-3.5-turbo", 0.5, 1.5),

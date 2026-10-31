@@ -102,7 +102,7 @@ def main() -> int:
     texts = [d.page_content for d in docs]
     vectors = emb.embed_documents(texts)
     points: list[PointStruct] = []
-    for i, (doc, vec) in enumerate(zip(docs, vectors)):
+    for i, (doc, vec) in enumerate(zip(docs, vectors, strict=True)):
         payload = {"page_content": doc.page_content, **(doc.metadata or {})}
         points.append(
             PointStruct(id=i + 1, vector=list(vec), payload=payload),
@@ -139,4 +139,4 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except ConnectionError as e:
         print(e, file=sys.stderr)
-        raise SystemExit(1)
+        raise SystemExit(1) from None

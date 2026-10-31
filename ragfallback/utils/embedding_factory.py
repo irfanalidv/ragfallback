@@ -9,7 +9,8 @@ def create_open_source_embeddings(model_name: str = "all-MiniLM-L6-v2") -> Embed
 
     Args:
         model_name: HuggingFace model name
-                   Options: "all-MiniLM-L6-v2", "all-mpnet-base-v2", "sentence-transformers/all-MiniLM-L6-v2"
+                   Options: "all-MiniLM-L6-v2", "all-mpnet-base-v2",
+                   "sentence-transformers/all-MiniLM-L6-v2"
 
     Returns:
         Embeddings instance
@@ -23,11 +24,11 @@ def create_open_source_embeddings(model_name: str = "all-MiniLM-L6-v2") -> Embed
     except ImportError:
         try:
             from langchain_community.embeddings import HuggingFaceEmbeddings
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "HuggingFace embeddings not installed. "
                 "Install with: pip install ragfallback[huggingface]"
-            )
+            ) from e
     return HuggingFaceEmbeddings(
         model_name=model_name,
         model_kwargs={"device": "cpu"},
@@ -49,13 +50,11 @@ def create_ollama_embeddings(
     """
     try:
         from langchain_community.embeddings import OllamaEmbeddings
-
-        base_url = base_url or "http://localhost:11434"
-        return OllamaEmbeddings(model=model, base_url=base_url)
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "Ollama embeddings not installed. Install with: pip install langchain-community"
-        )
+        ) from e
+    return OllamaEmbeddings(model=model, base_url=base_url or "http://localhost:11434")
 
 
 def create_openai_embeddings(
@@ -73,12 +72,11 @@ def create_openai_embeddings(
     """
     try:
         from langchain_openai import OpenAIEmbeddings
-
-        return OpenAIEmbeddings(model=model, api_key=api_key)
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "OpenAI embeddings not installed. Install with: pip install langchain-openai"
-        )
+        ) from e
+    return OpenAIEmbeddings(model=model, api_key=api_key)
 
 
 def create_anthropic_embeddings(api_key: str | None = None) -> Embeddings:
@@ -88,14 +86,11 @@ def create_anthropic_embeddings(api_key: str | None = None) -> Embeddings:
     Args:
         api_key: Anthropic API key (optional, uses ANTHROPIC_API_KEY env var if not provided)
 
-    Returns:
-        Embeddings instance
+    Raises:
+        NotImplementedError: always. Anthropic does not offer an embeddings API; use
+            :func:`create_openai_embeddings` or :func:`create_open_source_embeddings`.
     """
-    try:
-        # Note: Anthropic doesn't have separate embeddings, use OpenAI or open-source
-        raise NotImplementedError(
-            "Anthropic doesn't provide separate embeddings. "
-            "Use OpenAI embeddings or open-source alternatives."
-        )
-    except ImportError:
-        raise ImportError("Anthropic not installed. Install with: pip install langchain-anthropic")
+    raise NotImplementedError(
+        "Anthropic doesn't provide separate embeddings. "
+        "Use OpenAI embeddings or open-source alternatives."
+    )

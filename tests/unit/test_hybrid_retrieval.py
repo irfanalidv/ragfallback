@@ -127,13 +127,15 @@ def test_from_documents_raises_import_error_without_rank_bm25() -> None:
     """from_documents must raise ImportError with pip install hint if rank_bm25 absent."""
     store = _make_dense_store([])
     docs = [_doc("doc")]
-    with patch("ragfallback.retrieval.smart_hybrid.logger"):  # silence logging
-        with patch(
+    with (
+        patch("ragfallback.retrieval.smart_hybrid.logger"),  # silence logging
+        patch(
             "langchain_community.retrievers.BM25Retriever.from_documents",
             side_effect=ImportError("no module named rank_bm25"),
-        ):
-            with pytest.raises(ImportError, match="pip install ragfallback\\[hybrid\\]"):
-                SmartThresholdHybridRetriever.from_documents(docs, vectorstore=store)
+        ),
+        pytest.raises(ImportError, match="pip install ragfallback\\[hybrid\\]"),
+    ):
+        SmartThresholdHybridRetriever.from_documents(docs, vectorstore=store)
 
 
 # ---------------------------------------------------------------------------

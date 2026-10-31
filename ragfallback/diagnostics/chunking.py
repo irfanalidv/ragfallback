@@ -119,13 +119,13 @@ class ChunkQualityChecker:
             # Only count longer spans as "mid-sentence" noise (titles/labels stay exempt).
             if len(stripped) >= 80 and not _SENTENCE_END.search(stripped):
                 mid_sentence += 1
-            if self.require_sentence_end and stripped:
-                if stripped[-1] not in '.?!…"':
-                    violations.append(f"chunk[{i}] may end mid-sentence")
+            if self.require_sentence_end and stripped and stripped[-1] not in '.?!…"':
+                violations.append(f"chunk[{i}] may end mid-sentence")
         ms_ratio = mid_sentence / n if n else 0.0
         if ms_ratio >= self.mid_sentence_warn_ratio:
             violations.append(
-                f"high fraction of chunks end mid-sentence ({ms_ratio:.0%} ≥ {self.mid_sentence_warn_ratio:.0%})"
+                "high fraction of chunks end mid-sentence "
+                f"({ms_ratio:.0%} ≥ {self.mid_sentence_warn_ratio:.0%})"
             )
 
         overlap_est: float | None = None
@@ -183,7 +183,8 @@ class ChunkQualityChecker:
             tips.append("Raise chunk_overlap so neighbors share boundary text.")
         if "mid-sentence" in vtext or "sentence" in vtext:
             tips.append(
-                "Use a splitter that respects sentence boundaries (e.g. RecursiveCharacterTextSplitter)."
+                "Use a splitter that respects sentence boundaries "
+                "(e.g. RecursiveCharacterTextSplitter)."
             )
         return tips
 

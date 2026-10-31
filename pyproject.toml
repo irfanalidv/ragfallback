@@ -135,3 +135,18 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "RUF", "PTH", "RET", "PIE"
 
 [tool.ruff.lint.isort]
 known-first-party = ["ragfallback"]
+
+[tool.ruff.lint.per-file-ignores]
+# LLM prompt and generated-file templates: wrapping these lines would change the text
+# sent to the model / written to disk.
+"ragfallback/core/adaptive_retriever.py" = ["E501"]
+"ragfallback/strategies/query_variations.py" = ["E501"]
+"ragfallback/utils/confidence_scorer.py" = ["E501"]
+"ragfallback/mlops/locust_template.py" = ["E501"]
+# Example scripts and integration tests insert the repo root into sys.path before
+# importing ragfallback so they run from a fresh clone without `pip install -e .`.
+# Long human-readable strings (sample corpora, printed banners, test prompts) are
+# also left unwrapped in these scripts.
+"examples/*.py" = ["E402", "E501"]
+"tests/integration/*.py" = ["E402", "E501"]
+"verify_library.py" = ["E501"]

@@ -13,14 +13,13 @@ Env vars     : NONE required for retrieval demo; HF_TOKEN optional for LLM
 
 from __future__ import annotations
 
-import os
 import sys
+from pathlib import Path
 
-_repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if os.path.isdir(os.path.join(_repo_root, "ragfallback")) and _repo_root not in sys.path:
+_examples_dir = str(Path(__file__).resolve().parent)
+_repo_root = str(Path(_examples_dir).parent)
+if (Path(_repo_root) / "ragfallback").is_dir() and _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
-
-_examples_dir = os.path.dirname(os.path.abspath(__file__))
 if _examples_dir not in sys.path:
     sys.path.insert(0, _examples_dir)
 

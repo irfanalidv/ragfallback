@@ -50,7 +50,7 @@ def _estimate_tokens(
 def _cosine(a: list[float], b: list[float]) -> float:
     if np is None:
         # pure Python fallback
-        dot = sum(x * y for x, y in zip(a, b))
+        dot = sum(x * y for x, y in zip(a, b, strict=False))
         na = sum(x * x for x in a) ** 0.5
         nb = sum(y * y for y in b) ** 0.5
         if na == 0 or nb == 0:
@@ -171,7 +171,7 @@ class ContextWindowGuard:
         if lost_in_middle and len(selected) >= 3:
             # Place 2nd-most-relevant at the end (weak "lost in the middle" mitigation).
             first, second, rest = selected[0], selected[1], selected[2:]
-            selected = [first] + rest + [second]
+            selected = [first, *rest, second]
 
         return selected, ContextWindowReport(
             budget_tokens=self.max_context_tokens,

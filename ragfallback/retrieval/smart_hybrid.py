@@ -53,7 +53,8 @@ class SmartThresholdHybridRetriever(BaseRetriever):
     score_mode: ScoreMode = "distance"
     # For score_mode == "distance" (lower is better, e.g. L2): keep if score <= max_distance
     max_distance: float | None = None
-    # For score_mode == "similarity" (higher is better, e.g. cosine sim): keep if score >= min_similarity
+    # For score_mode == "similarity" (higher is better, e.g. cosine sim):
+    # keep if score >= min_similarity
     min_similarity: float | None = 0.7
     # For score_mode == "relative_similarity": keep docs with score >= best * relative_floor
     relative_floor: float = 0.85
@@ -95,8 +96,7 @@ class SmartThresholdHybridRetriever(BaseRetriever):
                 kept = [(d, s) for d, s in pairs if s <= self.max_distance]
 
         kept.sort(key=lambda x: x[1], reverse=(self.score_mode != "distance"))
-        docs = [d for d, _ in kept[: self.final_k]]
-        return docs
+        return [d for d, _ in kept[: self.final_k]]
 
     def _get_relevant_documents(
         self,

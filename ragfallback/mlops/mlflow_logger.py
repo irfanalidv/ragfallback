@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class MLflowLogger:
-    """Log :class:`~ragfallback.mlops.golden_runner.GoldenReport` metrics when MLflow is installed."""
+    """Log :class:`~ragfallback.mlops.golden_runner.GoldenReport` metrics to MLflow.
+
+    A no-op when MLflow is not installed.
+    """
 
     def __init__(self, tracking_uri: str = "file:./mlruns") -> None:
         """Configure tracking URI or become a no-op if MLflow is missing."""

@@ -27,10 +27,10 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-import _kb_common  # noqa: E402
-from langchain_core.documents import Document  # noqa: E402
+import _kb_common
+from langchain_core.documents import Document
 
-from ragfallback.diagnostics import OverlappingContextStitcher  # noqa: E402
+from ragfallback.diagnostics import OverlappingContextStitcher
 
 # Six chunks from the same HR policy document — split across top-k retrieval
 _HR_CHUNKS = [
@@ -59,7 +59,6 @@ def main() -> None:
     print("=" * 60)
 
     docs = _make_hr_docs()
-    emb = _kb_common.get_embeddings()
 
     # Dense retrieval skips chunk 1 (adjacent to chunk 0) and returns
     # non-consecutive indices, fragmenting the answer across top-k.
@@ -83,7 +82,7 @@ def main() -> None:
         start = d.metadata.get("stitched_chunk_start", "?")
         end = d.metadata.get("stitched_chunk_end", "?")
         was_stitched = d.metadata.get("ragfallback_stitched", False)
-        label = f"chunks {start}–{end}" if was_stitched else f"chunk {start}"
+        label = f"chunks {start}-{end}" if was_stitched else f"chunk {start}"
         print(f"\n  Block {i} ({label}, {len(d.page_content)} chars):")
         print(f"  {d.page_content[:200]}{'...' if len(d.page_content) > 200 else ''}")
 

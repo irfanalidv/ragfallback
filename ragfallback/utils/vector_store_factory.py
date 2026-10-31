@@ -1,14 +1,20 @@
 """Factory functions for creating vector stores (open-source and paid)."""
 
+import logging
+from pathlib import Path
+
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
+
+logger = logging.getLogger(__name__)
 
 
 def create_faiss_vector_store(
     documents: list[Document],
     embeddings: Embeddings,
     persist_directory: str | None = None,
+    allow_dangerous_deserialization: bool = False,
 ) -> VectorStore:
     """
     Create a FAISS vector store (open-source, runs locally, no API key needed).
@@ -17,6 +23,9 @@ def create_faiss_vector_store(
         documents: List of Document objects
         embeddings: Embeddings instance
         persist_directory: Optional directory to persist the index
+        allow_dangerous_deserialization: Reload an existing index from
+            ``persist_directory`` instead of rebuilding it. FAISS stores its docstore
+            with pickle, so only enable this for directories you wrote yourself.
 
     Returns:
         VectorStore instance
@@ -29,22 +38,24 @@ def create_faiss_vector_store(
     """
     try:
         from langchain_community.vectorstores import FAISS
+    except ImportError as e:
+        raise ImportError("FAISS not installed. Install with: pip install faiss-cpu") from e
 
-        if persist_directory:
-            # Try to load existing index
-            try:
-                return FAISS.load_local(persist_directory, embeddings)
-            except Exception:
-                pass
+    if persist_directory and (Path(persist_directory) / "index.faiss").exists():
+        if allow_dangerous_deserialization:
+            return FAISS.load_local(
+                persist_directory, embeddings, allow_dangerous_deserialization=True
+            )
+        logger.warning(
+            "FAISS index found at %s but allow_dangerous_deserialization=False; "
+            "rebuilding and overwriting it.",
+            persist_directory,
+        )
 
-        vector_store = FAISS.from_documents(documents, embeddings)
-
-        if persist_directory:
-            vector_store.save_local(persist_directory)
-
-        return vector_store
-    except ImportError:
-        raise ImportError("FAISS not installed. Install with: pip install faiss-cpu")
+    vector_store = FAISS.from_documents(documents, embeddings)
+    if persist_directory:
+        vector_store.save_local(persist_directory)
+    return vector_store
 
 
 def create_chroma_vector_store(
@@ -67,15 +78,14 @@ def create_chroma_vector_store(
     """
     try:
         from langchain_community.vectorstores import Chroma
-
-        return Chroma.from_documents(
-            documents=documents,
-            embedding=embeddings,
-            persist_directory=persist_directory,
-            collection_name=collection_name,
-        )
-    except ImportError:
-        raise ImportError("ChromaDB not installed. Install with: pip install chromadb")
+    except ImportError as e:
+        raise ImportError("ChromaDB not installed. Install with: pip install chromadb") from e
+    return Chroma.from_documents(
+        documents=documents,
+        embedding=embeddings,
+        persist_directory=persist_directory,
+        collection_name=collection_name,
+    )
 
 
 def create_qdrant_vector_store(
@@ -102,19 +112,16 @@ def create_qdrant_vector_store(
     """
     try:
         from langchain_community.vectorstores import Qdrant
-
-        url = url or "http://localhost:6333"
-
-        return Qdrant.from_documents(
-            documents=documents,
-            embedding=embeddings,
-            url=url,
-            api_key=api_key,
-            prefer_grpc=prefer_grpc,
-            collection_name=collection_name,
-        )
-    except ImportError:
-        raise ImportError("Qdrant not installed. Install with: pip install qdrant-client")
+    except ImportError as e:
+        raise ImportError("Qdrant not installed. Install with: pip install qdrant-client") from e
+    return Qdrant.from_documents(
+        documents=documents,
+        embedding=embeddings,
+        url=url or "http://localhost:6333",
+        api_key=api_key,
+        prefer_grpc=prefer_grpc,
+        collection_name=collection_name,
+    )
 
 
 def create_pinecone_vector_store(
@@ -140,12 +147,10 @@ def create_pinecone_vector_store(
     try:
         import pinecone
         from langchain_community.vectorstores import Pinecone
-
-        if api_key:
-            pinecone.init(api_key=api_key, environment=environment)
-
-        return Pinecone.from_documents(
-            documents=documents, embedding=embeddings, index_name=index_name
-        )
-    except ImportError:
-        raise ImportError("Pinecone not installed. Install with: pip install pinecone-client")
+    except ImportError as e:
+        raise ImportError(
+            "Pinecone not installed. Install with: pip install pinecone-client"
+        ) from e
+    if api_key:
+        pinecone.init(api_key=api_key, environment=environment)
+    return Pinecone.from_documents(documents=documents, embedding=embeddings, index_name=index_name)

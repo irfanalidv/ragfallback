@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -73,7 +73,7 @@ class BaselineRegistry:
             "recall_at_3": float(report.recall_at_3),
             "recall_at_5": float(report.recall_at_5),
             "latency_p95_ms": float(report.latency_p95_ms),
-            "recorded_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+            "recorded_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
         self._data[dataset] = entry
         self._save()

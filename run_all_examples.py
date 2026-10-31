@@ -18,8 +18,7 @@ def run_example(example_path):
 
     try:
         # Check if file has main guard
-        with open(example_path) as f:
-            content = f.read()
+        content = Path(example_path).read_text()
 
         if 'if __name__ == "__main__":' not in content:
             print(f"⚠️  Skipping {example_name} - no main guard")

@@ -311,7 +311,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         context = context or {}
         intermediate_steps: list[dict[str, Any]] = []
         total_cost = 0.0
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         start = loop.time()
 
         for strategy_idx, strategy in enumerate(self.strategies):
@@ -505,8 +505,8 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                 result = await ainvoke(query)
                 return list(result or [])
             # Fall back: run sync invoke in executor
-            loop = asyncio.get_event_loop()
-            invoke = getattr(retriever, "invoke", retriever.get_relevant_documents)
+            loop = asyncio.get_running_loop()
+            invoke = getattr(retriever, "invoke", None) or retriever.get_relevant_documents
             return list(await loop.run_in_executor(None, functools.partial(invoke, query)) or [])
         except Exception as exc:
             if self.logger:
@@ -523,7 +523,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         """Async answer generation; falls back to thread pool if ``ainvoke`` absent."""
         docs_text = self._format_documents(documents)
         prompt = self._build_answer_prompt(question, docs_text, context)
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         with self.cost_tracker.track(operation="answer_generation"):
             messages = [

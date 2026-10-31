@@ -50,7 +50,7 @@ class OverlappingContextStitcher:
             run: list[Document] = []
             last_idx: int | None = None
 
-            def flush_run(run_docs: list[Document]) -> None:
+            def flush_run(run_docs: list[Document], src: str = src) -> None:
                 if not run_docs:
                     return
                 text = self.separator.join(d.page_content for d in run_docs)
@@ -107,8 +107,8 @@ class OverlappingContextStitcher:
             by_src.setdefault(src, []).append((idx, d))
 
         out: list[Document] = []
-        for src, items in by_src.items():
-            indices = sorted(set(i for i, _ in items))
+        for items in by_src.values():
+            indices = sorted({i for i, _ in items})
             want = set()
             for i in indices:
                 for j in range(i - neighbor_radius, i + neighbor_radius + 1):

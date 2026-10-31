@@ -9,7 +9,7 @@ import logging
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -90,7 +90,7 @@ class GoldenRunner:
         ainvoke = getattr(r, "ainvoke", None)
         if ainvoke is not None:
             return list(await ainvoke(query) or [])
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         invoke = getattr(r, "invoke", None)
         if invoke is not None:
             return list(await loop.run_in_executor(None, functools.partial(invoke, query)) or [])
@@ -127,7 +127,7 @@ class GoldenRunner:
         """Run one golden row synchronously and return diagnostics."""
         query = item["query"]
         gt = item.get("ground_truth", "")
-        rel_ids: set[str] = set(str(x) for x in item.get("relevant_doc_ids", []))
+        rel_ids: set[str] = {str(x) for x in item.get("relevant_doc_ids", [])}
 
         t0 = time.perf_counter()
         result = self.retriever.query_with_fallback(query, return_intermediate_steps=True)
@@ -159,7 +159,7 @@ class GoldenRunner:
         """Run one golden row natively async using :meth:`aquery_with_fallback`."""
         query = item["query"]
         gt = item.get("ground_truth", "")
-        rel_ids: set[str] = set(str(x) for x in item.get("relevant_doc_ids", []))
+        rel_ids: set[str] = {str(x) for x in item.get("relevant_doc_ids", [])}
 
         try:
             t0 = time.perf_counter()
@@ -173,7 +173,7 @@ class GoldenRunner:
                 "falling back to thread pool for query: %s",
                 query[:80],
             )
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, self._run_single, item)
 
         docs = await self._aretrieve_docs(query, k=5)
@@ -222,7 +222,7 @@ class GoldenRunner:
             latency_mean_ms=mean_lat,
             fallback_rate=fb,
             n_samples=len(per_sample),
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             per_sample=per_sample,
             cache_stats=cache_stats,
         )

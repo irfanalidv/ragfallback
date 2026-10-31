@@ -10,7 +10,8 @@ from langchain_core.retrievers import BaseRetriever
 
 class RetrieverAsVectorStore:
     """
-    Minimal ``as_retriever()`` surface for :class:`~ragfallback.core.adaptive_retriever.AdaptiveRAGRetriever`.
+    Minimal ``as_retriever()`` surface for
+    :class:`~ragfallback.core.adaptive_retriever.AdaptiveRAGRetriever`.
 
     Example::
 

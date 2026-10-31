@@ -44,7 +44,7 @@ def _make_retriever_instance(min_confidence: float = 0.0):
     # Embeddings
     emb = MagicMock()
 
-    retriever = AdaptiveRAGRetriever(
+    return AdaptiveRAGRetriever(
         vector_store=vs,
         llm=llm,
         embedding_model=emb,
@@ -52,7 +52,6 @@ def _make_retriever_instance(min_confidence: float = 0.0):
         min_confidence=min_confidence,
         enable_logging=False,
     )
-    return retriever
 
 
 # ── Tests ──────────────────────────────────────────────────────────────────────

@@ -26,9 +26,9 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-import _kb_common  # noqa: E402
+import _kb_common
 
-from ragfallback.diagnostics import EmbeddingQualityProbe  # noqa: E402
+from ragfallback.diagnostics import EmbeddingQualityProbe
 
 # General business text — all-MiniLM was trained on this kind of content
 _GENERAL_SNIPPETS = [

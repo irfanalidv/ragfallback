@@ -29,9 +29,9 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-import _kb_common  # noqa: E402
+import _kb_common
 
-from ragfallback.diagnostics import ChunkQualityChecker  # noqa: E402
+from ragfallback.diagnostics import ChunkQualityChecker
 
 
 def _show_violation_example(texts: list[str], checker: ChunkQualityChecker) -> None:
@@ -96,14 +96,12 @@ def main() -> None:
         )
         # Inject a synthetic bad chunk to demonstrate the detection path
         print("\n  Injecting 3 synthetic bad chunks to demonstrate detection...")
-        synthetic_bad = (
-            texts
-            + [
-                "Too short.",  # 10 chars
-                "incomplete sentence that just cuts",  # 34 chars, no period
-                texts[0][:50] + " " + texts[0][:50],  # near-duplicate
-            ]
-        )
+        synthetic_bad = [
+            *texts,
+            "Too short.",  # 10 chars
+            "incomplete sentence that just cuts",  # 34 chars, no period
+            texts[0][:50] + " " + texts[0][:50],  # near-duplicate
+        ]
         bad_report = checker.check(synthetic_bad)
         print(f"  After injection: {bad_report.summary()}")
         _show_violation_example(synthetic_bad, checker)

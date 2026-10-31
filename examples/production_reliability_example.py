@@ -1,5 +1,5 @@
 """
-USE CASE: UC-1–UC-7 — Full reliability pipeline (single script)
+USE CASE: UC-1 to UC-7 — Full reliability pipeline (single script)
 ===============================================================
 Real problem : Silent failures at chunk, embed, index, retrieve, context, and answer layers.
 Goal         : Chunk check → EmbeddingGuard → Chroma → stale/content manifest →

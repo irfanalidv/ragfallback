@@ -284,7 +284,7 @@ def run_query_simulation(samples: list[dict]):
 
     # Unhappy paths (4x expansion)
     unhappy = sim.simulate_unhappy_paths(base_queries[:3])
-    ok(f"simulate_unhappy_paths() → {len(unhappy)} queries (4× of 3 inputs)")
+    ok(f"simulate_unhappy_paths() → {len(unhappy)} queries (4x of 3 inputs)")
 
 
 # ─── STEP 8: LOCUST FILE GENERATION ──────────────────────────────────────────

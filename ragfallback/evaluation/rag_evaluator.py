@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import re
 from collections.abc import Sequence
@@ -9,6 +10,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ragfallback.tracking.metrics import MetricsCollector
+
+logger = logging.getLogger(__name__)
 
 
 def recall_at_k(retrieved_ids: Sequence[str], relevant_ids: set[str], k: int) -> float:
@@ -70,16 +73,21 @@ def _parse_llm_score_0_10(raw: str) -> float:
 
 
 def _invoke_llm_text(llm: Any, prompt: str) -> str:
-    try:
+    """Call a LangChain model (``.invoke``) or a plain ``callable(prompt) -> str``.
+
+    Errors raised by the model propagate: a failing judge should not be silently
+    replaced by a second call through a different code path.
+    """
+    if hasattr(llm, "invoke"):
         from langchain_core.messages import HumanMessage
 
         res = llm.invoke([HumanMessage(content=prompt)])
         if hasattr(res, "content"):
             return str(res.content).strip()
         return str(res).strip()
-    except Exception:
-        out = llm(prompt) if callable(llm) else ""
-        return str(out).strip()
+    if callable(llm):
+        return str(llm(prompt)).strip()
+    raise TypeError(f"Judge LLM must expose .invoke() or be callable, got {type(llm).__name__}")
 
 
 _FAITH_PROMPT = """Rate how well the answer is grounded in the context (0-10 only).
@@ -227,7 +235,8 @@ class RAGEvaluator:
             return None
         try:
             return float(judge(answer, context))
-        except Exception:
+        except Exception as exc:
+            logger.warning("faithfulness judge failed (%s: %s)", type(exc).__name__, exc)
             return None
 
     def context_precision(
@@ -317,7 +326,7 @@ class RAGEvaluator:
     ) -> RAGScore:
         """
         Score one RAG turn. ``contexts`` may be strings or objects with ``page_content``.
-        With ``llm`` passed to the constructor, uses short 0–10 judge prompts; else heuristics.
+        With ``llm`` passed to the constructor, uses short 0-10 judge prompts; else heuristics.
         """
         warnings: list[str] = []
         ctx_list = [

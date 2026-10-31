@@ -30,11 +30,11 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-import _kb_common  # noqa: E402
+import _kb_common
 
-from ragfallback import AdaptiveRAGRetriever  # noqa: E402
-from ragfallback.strategies import QueryVariationsStrategy  # noqa: E402
-from ragfallback.tracking import CostTracker, MetricsCollector  # noqa: E402
+from ragfallback import AdaptiveRAGRetriever
+from ragfallback.strategies import QueryVariationsStrategy
+from ragfallback.tracking import CostTracker, MetricsCollector
 
 # Pre-scripted variations for three demo queries. The mock cycles through
 # them deterministically so the retry chain is always visible even offline.
@@ -110,11 +110,10 @@ def main() -> None:
 
     print("\nLoading 100 real SQuAD Wikipedia passages...")
     try:
-        docs, probes = _kb_common.load_real_dataset("squad", max_docs=100)
+        docs, _probes = _kb_common.load_real_dataset("squad", max_docs=100)
     except (ImportError, Exception) as exc:
         print(f"  WARN: {exc} — falling back to sample_kb")
         docs = _kb_common.load_sample_kb()
-        probes = []
 
     print(f"\nBuilding FAISS index ({len(docs)} passages)...")
     emb = _kb_common.get_embeddings()

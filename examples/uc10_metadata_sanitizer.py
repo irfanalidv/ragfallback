@@ -26,10 +26,10 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-import _kb_common  # noqa: E402
-from langchain_core.documents import Document  # noqa: E402
+import _kb_common
+from langchain_core.documents import Document
 
-from ragfallback.diagnostics import sanitize_documents  # noqa: E402
+from ragfallback.diagnostics import sanitize_documents
 
 
 def _print_metadata(label: str, docs: list[Document]) -> None:
@@ -80,11 +80,10 @@ def main() -> None:
 
     _print_metadata("Before sanitization (dirty metadata)", dirty_docs)
 
-    emb = _kb_common.get_embeddings()
     persist = Path(tempfile.mkdtemp(prefix="ragfallback_uc10_")) / "chroma"
     print("\n--- Attempting to insert dirty docs into ChromaDB ---")
     try:
-        vs_dirty = _kb_common.build_chroma_store(
+        _kb_common.build_chroma_store(
             dirty_docs,
             persist_directory=persist / "dirty",
             collection_name="uc10_dirty",

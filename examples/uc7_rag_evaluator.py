@@ -29,9 +29,9 @@ _examples_dir = Path(__file__).resolve().parent
 if str(_examples_dir) not in sys.path:
     sys.path.insert(0, str(_examples_dir))
 
-import _kb_common  # noqa: E402
+import _kb_common
 
-from ragfallback.evaluation import RAGEvaluator  # noqa: E402
+from ragfallback.evaluation import RAGEvaluator
 
 _N_DOCS = 60
 _N_EVAL = 10
@@ -91,7 +91,6 @@ def main() -> None:
     print(f"  Example question : {probes[0]['question'][:80]}...")
 
     print("\nBuilding ChromaDB index from PubMed abstracts...")
-    emb = _kb_common.get_embeddings()
     persist = Path(tempfile.mkdtemp(prefix="ragfallback_uc7_")) / "chroma"
     vs = _kb_common.build_chroma_store(docs, persist_directory=persist, collection_name="uc7")
     retriever = vs.as_retriever(search_kwargs={"k": 4})

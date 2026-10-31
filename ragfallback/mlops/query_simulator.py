@@ -5,6 +5,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import ClassVar
 
 
 @dataclass
@@ -19,7 +20,7 @@ class SimQuery:
 class QuerySimulator:
     """Produce short, long, ambiguous, and out-of-domain query variants."""
 
-    _DEFAULT_OOD: list[str] = [
+    _DEFAULT_OOD: ClassVar[list[str]] = [
         "What is the weather in Tokyo?",
         "How do I bake sourdough bread?",
         "What is the GDP of Norway?",

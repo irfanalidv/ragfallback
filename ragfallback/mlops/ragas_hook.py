@@ -6,7 +6,7 @@ import asyncio
 import functools
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from ragfallback.evaluation.rag_evaluator import RAGEvaluator, RAGScore
@@ -114,7 +114,7 @@ class RagasHook:
             context_recall=ctx_rec,
             n_samples=len(scores),
             fallback_mode=True,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             raw={},
         )
 
@@ -128,7 +128,7 @@ class RagasHook:
                 context_recall=0.0,
                 n_samples=0,
                 fallback_mode=not self._ragas_available,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 raw={},
             )
         if not self._ragas_available:
@@ -182,10 +182,7 @@ class RagasHook:
                 ctx_p = _mean("context_precision")
                 ctx_r = _mean("context_recall")
             except Exception:
-                if isinstance(result, dict):
-                    raw_dict = dict(result)
-                else:
-                    raw_dict = {"repr": repr(result)}
+                raw_dict = dict(result) if isinstance(result, dict) else {"repr": repr(result)}
 
             return RagasReport(
                 faithfulness=float(faith),
@@ -194,7 +191,7 @@ class RagasHook:
                 context_recall=float(ctx_r),
                 n_samples=len(samples),
                 fallback_mode=False,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 raw=raw_dict,
             )
         except Exception as exc:
@@ -203,5 +200,5 @@ class RagasHook:
 
     async def evaluate_async(self, samples: list[dict[str, Any]]) -> RagasReport:
         """Run :meth:`evaluate_sync` in a thread pool."""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, functools.partial(self.evaluate_sync, samples))

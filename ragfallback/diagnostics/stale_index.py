@@ -32,7 +32,10 @@ class StaleIndexReport:
 
     @property
     def has_stale(self) -> bool:
-        """True if the manifest disagrees with current files (same as ``not ok`` when manifest existed)."""
+        """True if the manifest disagrees with current files.
+
+        Same as ``not ok`` when a manifest existed.
+        """
         return not self.ok
 
     def summary(self) -> str:

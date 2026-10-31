@@ -1,4 +1,4 @@
-"""Heuristic probe: query–document similarity spread (generic vs domain mismatch hint)."""
+"""Heuristic probe: query-document similarity spread (generic vs domain mismatch hint)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from langchain_core.embeddings import Embeddings
 
 def _cosine_list(a: list[float], b: list[float]) -> float:
     if np is None:
-        dot = sum(x * y for x, y in zip(a, b))
+        dot = sum(x * y for x, y in zip(a, b, strict=False))
         na = sum(x * x for x in a) ** 0.5
         nb = sum(y * y for y in b) ** 0.5
         if na == 0 or nb == 0:

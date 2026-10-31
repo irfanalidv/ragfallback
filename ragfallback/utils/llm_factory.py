@@ -47,14 +47,14 @@ def create_open_source_llm(
     # Default to Ollama
     try:
         from langchain_community.llms import Ollama
-
-        base_url = base_url or "http://localhost:11434"
-        return Ollama(model=model, base_url=base_url, temperature=temperature)
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "Ollama not installed. Install with: pip install langchain-community. "
             "Or use provider='huggingface' for HuggingFace Inference API."
-        )
+        ) from e
+    return Ollama(
+        model=model, base_url=base_url or "http://localhost:11434", temperature=temperature
+    )
 
 
 def create_huggingface_llm(
@@ -109,58 +109,55 @@ def create_huggingface_llm(
         # Use HuggingFace Inference API (easier, free tier available)
         try:
             from langchain_community.llms import HuggingFaceEndpoint
-
-            return HuggingFaceEndpoint(
-                endpoint_url=f"https://api-inference.huggingface.co/pipeline/text-generation/{model_id}",
-                huggingfacehub_api_token=api_key,
-                task="text-generation",
-                temperature=temperature,
-                model_kwargs={
-                    "max_length": max_length,
-                },
-            )
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "HuggingFace Inference API not available. Install with: pip install huggingface-hub"
-            )
-    else:
-        # Use local transformers model
-        try:
-            from langchain_community.llms import HuggingFacePipeline
-            from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+            ) from e
+        return HuggingFaceEndpoint(
+            endpoint_url=(
+                f"https://api-inference.huggingface.co/pipeline/text-generation/{model_id}"
+            ),
+            huggingfacehub_api_token=api_key,
+            task="text-generation",
+            temperature=temperature,
+            model_kwargs={"max_length": max_length},
+        )
 
-            # Load tokenizer and model
-            tokenizer = AutoTokenizer.from_pretrained(model_id)
-            model = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                device_map=device,
-                torch_dtype="auto" if device == "cuda" else None,
-            )
+    # Use local transformers model
+    try:
+        from langchain_community.llms import HuggingFacePipeline
+        from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+    except ImportError as e:
+        raise ImportError(
+            "HuggingFace transformers not installed. Install with: pip install transformers torch"
+        ) from e
+    try:
+        # Load tokenizer and model
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            device_map=device,
+            torch_dtype="auto" if device == "cuda" else None,
+        )
 
-            # Create pipeline
-            pipe = pipeline(
-                "text-generation",
-                model=model,
-                tokenizer=tokenizer,
-                device=0 if device == "cuda" else -1,
-                model_kwargs={
-                    "temperature": temperature,
-                    "max_length": max_length,
-                },
-            )
+        # Create pipeline
+        pipe = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            device=0 if device == "cuda" else -1,
+            model_kwargs={
+                "temperature": temperature,
+                "max_length": max_length,
+            },
+        )
 
-            return HuggingFacePipeline(pipeline=pipe)
-        except ImportError:
-            raise ImportError(
-                "HuggingFace transformers not installed. "
-                "Install with: pip install transformers torch"
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to load HuggingFace model {model_id}. "
-                f"Error: {e!s}. "
-                f"Try using use_inference_api=True for easier setup."
-            )
+        return HuggingFacePipeline(pipeline=pipe)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to load HuggingFace model {model_id}: {e!s}. "
+            "Try use_inference_api=True for easier setup."
+        ) from e
 
 
 def create_mistral_llm(
@@ -241,10 +238,9 @@ def create_openai_llm(
     """
     try:
         from langchain_openai import ChatOpenAI
-
-        return ChatOpenAI(model=model, temperature=temperature, api_key=api_key)
-    except ImportError:
-        raise ImportError("OpenAI not installed. Install with: pip install langchain-openai")
+    except ImportError as e:
+        raise ImportError("OpenAI not installed. Install with: pip install langchain-openai") from e
+    return ChatOpenAI(model=model, temperature=temperature, api_key=api_key)
 
 
 def create_anthropic_llm(
@@ -265,7 +261,8 @@ def create_anthropic_llm(
     """
     try:
         from langchain_anthropic import ChatAnthropic
-
-        return ChatAnthropic(model=model, temperature=temperature, api_key=api_key)
-    except ImportError:
-        raise ImportError("Anthropic not installed. Install with: pip install langchain-anthropic")
+    except ImportError as e:
+        raise ImportError(
+            "Anthropic not installed. Install with: pip install langchain-anthropic"
+        ) from e
+    return ChatAnthropic(model=model, temperature=temperature, api_key=api_key)
