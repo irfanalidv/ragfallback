@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "ragfallback"
+abstract: "Prevents silent RAG failures: chunk quality, retrieval fallback, adaptive querying, and answer evaluation in one library."
+authors:
+  - family-names: Ali
+    given-names: Irfan
+version: "2.3.0"
+date-released: "2026-10-31"
+license: MIT
+repository-code: "https://github.com/irfanalidv/ragfallback"
+url: "https://pypi.org/project/ragfallback/"

@@ -79,8 +79,9 @@ class TestAqueryWithFallbackReturns:
     async def test_returns_query_result(self):
         """aquery_with_fallback returns a QueryResult."""
         retriever = _make_retriever_instance(min_confidence=0.0)
-        with patch.object(retriever.metrics_collector, "record_success"), patch.object(
-            retriever.metrics_collector, "record_failure"
+        with (
+            patch.object(retriever.metrics_collector, "record_success"),
+            patch.object(retriever.metrics_collector, "record_failure"),
         ):
             result = await retriever.aquery_with_fallback("What is the policy?")
         assert isinstance(result, QueryResult)
@@ -91,9 +92,10 @@ class TestAqueryWithFallbackReturns:
     async def test_records_success_metrics(self):
         """record_success is called when confidence threshold is met."""
         retriever = _make_retriever_instance(min_confidence=0.0)
-        with patch.object(
-            retriever.metrics_collector, "record_success"
-        ) as mock_success, patch.object(retriever.metrics_collector, "record_failure"):
+        with (
+            patch.object(retriever.metrics_collector, "record_success") as mock_success,
+            patch.object(retriever.metrics_collector, "record_failure"),
+        ):
             await retriever.aquery_with_fallback("What is the return window?")
         mock_success.assert_called_once()
 
@@ -101,12 +103,10 @@ class TestAqueryWithFallbackReturns:
         """record_failure is called when confidence stays below threshold."""
         retriever = _make_retriever_instance(min_confidence=1.0)  # impossible to pass
         # Patch ConfidenceScorer to always return 0
-        with patch(
-            "ragfallback.core.adaptive_retriever.ConfidenceScorer"
-        ) as MockScorer, patch.object(
-            retriever.metrics_collector, "record_failure"
-        ) as mock_fail, patch.object(
-            retriever.metrics_collector, "record_success"
+        with (
+            patch("ragfallback.core.adaptive_retriever.ConfidenceScorer") as MockScorer,
+            patch.object(retriever.metrics_collector, "record_failure") as mock_fail,
+            patch.object(retriever.metrics_collector, "record_success"),
         ):
             MockScorer.return_value.score.return_value = 0.0
             await retriever.aquery_with_fallback("impossible question")
@@ -124,8 +124,9 @@ class TestAqueryFallbackToThreadPool:
         # Remove ainvoke from the LLM so the AttributeError path is taken
         del retriever.llm.ainvoke
 
-        with patch.object(retriever.metrics_collector, "record_success"), patch.object(
-            retriever.metrics_collector, "record_failure"
+        with (
+            patch.object(retriever.metrics_collector, "record_success"),
+            patch.object(retriever.metrics_collector, "record_failure"),
         ):
             result = await retriever.aquery_with_fallback("fallback test question")
 
@@ -135,8 +136,9 @@ class TestAqueryFallbackToThreadPool:
         """Async result has the same shape as sync result."""
         retriever = _make_retriever_instance(min_confidence=0.0)
         question = "How does billing work?"
-        with patch.object(retriever.metrics_collector, "record_success"), patch.object(
-            retriever.metrics_collector, "record_failure"
+        with (
+            patch.object(retriever.metrics_collector, "record_success"),
+            patch.object(retriever.metrics_collector, "record_failure"),
         ):
             async_result = await retriever.aquery_with_fallback(question)
             sync_result = retriever.query_with_fallback(question)

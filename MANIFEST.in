@@ -7,3 +7,5 @@ include pytest.ini
 recursive-include ragfallback *.py py.typed
 recursive-include examples *.py
 recursive-include tests *.py
+include CHANGELOG.md
+include CITATION.cff

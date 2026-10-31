@@ -10,7 +10,7 @@ Drop into any LangChain-compatible stack. Catches bad chunks before they're embe
 [![Downloads](https://static.pepy.tech/badge/ragfallback)](https://pepy.tech/project/ragfallback)
 [![Tests](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml/badge.svg)](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml)
 [![Lint](https://github.com/irfanalidv/ragfallback/actions/workflows/lint.yml/badge.svg)](https://github.com/irfanalidv/ragfallback/actions/workflows/lint.yml)
-[![Python](https://img.shields.io/badge/python-3.8%E2%80%933.11-blue.svg)](https://pypi.org/project/ragfallback/)
+[![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue.svg)](https://pypi.org/project/ragfallback/)
 [![License: MIT](https://img.shields.io/github/license/irfanalidv/ragfallback)](https://github.com/irfanalidv/ragfallback/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/irfanalidv/ragfallback?style=social)](https://github.com/irfanalidv/ragfallback/stargazers)
 <br/>

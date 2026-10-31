@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-31
+
+### Changed
+- **Python 3.10+ required.** Python 3.8 and 3.9 are end-of-life; CI now
+  tests 3.10, 3.11, 3.12 and 3.13.
+- Verified against LangChain 1.x (`langchain` 1.4, `langchain-core` 1.x).
+- Packaging consolidated in `pyproject.toml` (PEP 639 licence metadata);
+  the stale `setup.py` (which still declared 2.0.2) was removed.
+- Development status promoted to *Production/Stable*.
+
+### Added
+- `pip install "ragfallback[dev]"` extra with the full test/lint toolchain.
+- `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CITATION.cff`, issue and PR
+  templates, and Dependabot config for dependencies and Actions.
+
 ## [2.2.3] - 2026-06-30
 
 ### Fixed
