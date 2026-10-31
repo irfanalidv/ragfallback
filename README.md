@@ -2,710 +2,500 @@
 
 # ragfallback
 
-**The reliability layer for RAG pipelines that already work — until they don't.**
-
-Drop into any LangChain-compatible stack. Catches bad chunks before they're embedded, fails over when retrieval goes empty, and scores answer quality on every run — so degradation shows up in CI, not in a user's support ticket.
+**A reliability layer for LangChain RAG pipelines: catch bad chunks and broken embeddings before indexing, fail over when retrieval comes back empty, retry low-confidence answers, and gate releases on evaluation metrics.**
 
 [![PyPI](https://img.shields.io/pypi/v/ragfallback?color=3fb950&label=PyPI)](https://pypi.org/project/ragfallback/)
-[![Downloads](https://static.pepy.tech/badge/ragfallback)](https://pepy.tech/project/ragfallback)
-[![Tests](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml/badge.svg)](https://github.com/irfanalidv/ragfallback/actions/workflows/test.yml)
-[![Lint](https://github.com/irfanalidv/ragfallback/actions/workflows/lint.yml/badge.svg)](https://github.com/irfanalidv/ragfallback/actions/workflows/lint.yml)
-[![Python](https://img.shields.io/badge/python-3.10%E2%80%933.13-blue.svg)](https://pypi.org/project/ragfallback/)
+[![Python versions](https://img.shields.io/pypi/pyversions/ragfallback)](https://pypi.org/project/ragfallback/)
+[![Downloads](https://static.pepy.tech/badge/ragfallback)](https://pepy.tech/projects/ragfallback)
+[![CI](https://img.shields.io/github/actions/workflow/status/irfanalidv/ragfallback/ci.yml?branch=main&label=CI)](https://github.com/irfanalidv/ragfallback/actions/workflows/ci.yml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/irfanalidv/ragfallback/codeql.yml?branch=main&label=CodeQL)](https://github.com/irfanalidv/ragfallback/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/github/license/irfanalidv/ragfallback)](https://github.com/irfanalidv/ragfallback/blob/main/LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/irfanalidv/ragfallback?style=social)](https://github.com/irfanalidv/ragfallback/stargazers)
-<br/>
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/irfanalidv/ragfallback/blob/main/ragfallback_colab.ipynb)
-[![MLOps: RAGAS + CI regression gate](https://img.shields.io/badge/MLOps-RAGAS%20%2B%20CI%20Gate-blueviolet)](https://github.com/irfanalidv/ragfallback/tree/main/ragfallback/mlops)
-[![Real data, zero mocks](https://img.shields.io/badge/examples-real%20datasets%20only-3fb950)](#examples--real-public-datasets)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![typed: mypy](https://img.shields.io/badge/typed-mypy-blue)](https://mypy-lang.org/)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/irfanalidv/ragfallback/blob/main/CONTRIBUTING.md)
 
 </div>
 
-<br/>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/irfanalidv/ragfallback/main/ragfallback_arch.svg" alt="ragfallback architecture — diagnostics, retrieval, core, evaluation and MLOps modules across the ingest-to-operate pipeline" width="100%">
-</p>
-
----
-
-## Contents
-
-- [Why ragfallback?](#why-ragfallback)
-- [What it prevents](#what-it-prevents)
-- [Quick start](#quick-start)
-- [Configuration](#configuration)
-- [Full pipeline](#full-pipeline)
-- [Module reference](#module-reference)
-- [Examples — real public datasets](#examples--real-public-datasets)
-- [Verified numbers](#verified-numbers--squad-wikipedia-validation-set)
-- [Install](#install)
-- [MLOps — evaluation & regression gate](#mlops--evaluation--regression-gate)
-- [Contributing](#contributing)
-- [FAQ](#faq)
-
----
-
 ## Why ragfallback?
 
-RAG pipelines rarely fail loudly. They fail by quietly returning an empty context, a half-relevant chunk, or a confident-sounding hallucination — and nothing in a typical LangChain + vector-store stack tells you that happened. ragfallback is not another retrieval framework competing with LangChain, LlamaIndex, or your vector DB; it's a thin layer of guards and checks that wraps the stack you already have.
-
-| If your stack today is...                          | ragfallback adds                                                                                  |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Raw LangChain retriever, no fallback                 | `FailoverRetriever` + `SmartThresholdHybridRetriever` — a second path when the first one goes empty |
-| RAGAS or another eval library, run manually          | `GoldenRunner` + `BaselineRegistry` — the same metrics wired into a CI gate that fails the build     |
-| Nothing — chunking and indexing "just work" for now  | `ChunkQualityChecker` + `EmbeddingGuard` — catches the two most common silent corruption sources     |
-| Hand-rolled retry logic around an LLM call           | `AdaptiveRAGRetriever` — confidence-scored retries with pluggable strategies, sync and async         |
-
-If you don't have any of the failure modes in the table below, you don't need this library. If you've shipped a RAG feature past a demo, you've probably hit at least three of them.
-
----
-
-## What it prevents
-
-| #  | Real production failure                               | Module                                             | Example                   |
-|----|-------------------------------------------------------|----------------------------------------------------|---------------------------|
-| 1  | Query mismatch → silent empty results                 | `AdaptiveRAGRetriever` + `QueryVariationsStrategy` | `uc6_adaptive_rag.py`     |
-| 2  | Embedding model switch corrupts index dimensions      | `EmbeddingGuard`                                   | `uc2_embedding_guard.py`  |
-| 3  | Bad chunks (too short, mid-sentence) poison retrieval | `ChunkQualityChecker`                              | `uc3_chunk_quality.py`    |
-| 4  | Retrieved chunks overflow LLM context window          | `ContextWindowGuard`                               | `uc4_context_window.py`   |
-| 5  | Keyword queries fail dense retrieval silently         | `SmartThresholdHybridRetriever`                    | `uc5_hybrid_failover.py`  |
-| 6  | Primary retriever outage returns empty, no fallback   | `FailoverRetriever`                                | `uc5_hybrid_failover.py`  |
-| 7  | Multi-step questions always fail single-shot RAG      | `MultiHopFallbackStrategy`                         | `uc6_multi_hop_demo.py`   |
-| 8  | Index serves stale data after document updates        | `StaleIndexDetector`                               | —                         |
-| 9  | Answer quality invisible in production                | `RAGEvaluator`                                     | `uc7_rag_evaluator.py`    |
-| 10 | Cross-boundary answers lost between adjacent chunks   | `OverlappingContextStitcher`                       | `uc8_context_stitcher.py`        |
-| 11 | Metric regression after model/embedder/chunker change | `GoldenRunner` + `BaselineRegistry`                | `examples/ci_regression_gate.py` |
-
----
-
-## Quick start
-
-```bash
-pip install ragfallback[chroma,huggingface,real-data]
-```
-
-```python
-from datasets import load_dataset
-from langchain_core.documents import Document
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
-from ragfallback.diagnostics import ChunkQualityChecker, EmbeddingGuard, RetrievalHealthCheck
-from ragfallback.evaluation import RAGEvaluator
-
-# 1 — load 50 real Wikipedia passages (SQuAD, CC BY-SA 4.0)
-ds = load_dataset("rajpurkar/squad", split="validation")
-seen, docs, probes = set(), [], []
-for row in ds:
-    ctx = row["context"].strip()
-    if ctx not in seen and len(seen) < 50:
-        seen.add(ctx)
-        docs.append(Document(page_content=ctx, metadata={"source": "squad"}))
-    if row["answers"]["text"]:
-        probes.append({"question": row["question"], "ground_truth": row["answers"]["text"][0]})
-print(f"Loaded {len(docs)} real passages, {len(probes)} Q&A pairs")
-
-# 2 — check chunk quality before embedding
-report = ChunkQualityChecker().check(docs)
-print(report.summary())
-
-# 3 — guard embedding dimensions before writing to any index
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-EmbeddingGuard(expected_dim=384).validate(embeddings).raise_if_failed()
-
-# 4 — build index and smoke-test retrieval with real Q&A probes
-store = Chroma.from_documents(docs, embeddings, persist_directory="./my_index")
-health = RetrievalHealthCheck(k=4).run_substring_probes(
-    store,
-    {p["question"]: p["ground_truth"][:50] for p in probes[:10]},
-)
-print(f"Retrieval hit rate: {health.hit_rate:.0%}")
-
-# 5 — evaluate answer quality on a real question
-question = probes[0]["question"]
-retrieved = store.as_retriever(search_kwargs={"k": 4}).invoke(question)
-answer = retrieved[0].page_content if retrieved else "Not found"
-score = RAGEvaluator().evaluate(
-    question,
-    answer,
-    [d.page_content for d in retrieved],
-    ground_truth=probes[0]["ground_truth"],
-)
-print(score.report())
-```
-
-Expected output (actual numbers — run it yourself):
-
-```
-Loaded 50 real passages, 2627 Q&A pairs
-[PASS] chunks=50 | len min/avg/max=144/618/2095
-Retrieval hit rate: 100%
-========================================================
- RAG evaluation
-========================================================
- Context precision  : 100.00%
- Faithfulness       : 95.00%
- Answer relevance   : 40.00%
- Recall (gold hit)  : 100.00%
- Overall            : 84.00%
- Pass (>=70%)       : True
-```
-
----
-
-## Configuration
-
-Most features work with no API key — chunk checking, embedding validation, hybrid retrieval, and evaluation all run locally.
-
-LLM-dependent features (`AdaptiveRAGRetriever`, `QueryVariationsStrategy`, `MultiHopFallbackStrategy`) need a model. Copy `.env.example` to `.env` and fill in:
-
-```bash
-cp .env.example .env
-```
-
-```
-MISTRAL_API_KEY=your_key_here
-MISTRAL_MODEL=mistral-small-latest   # default, override if needed
-```
-
-Get a free Mistral key at [console.mistral.ai](https://console.mistral.ai). The library also supports any LangChain-compatible LLM — pass it directly to `AdaptiveRAGRetriever(llm=your_llm)`.
-
----
-
-## Full pipeline
-
-```
-Your documents
-     │
-     ▼
-[ChunkQualityChecker]          ← bad splits, short/duplicate chunks
-     │
-     ▼
-[EmbeddingGuard]               ← dimension / NaN / zero-vector checks before write
-[EmbeddingQualityProbe]        ← domain mismatch heuristic (generic model on jargon)
-[sanitize_documents]           ← JSON-safe metadata before any vector store write
-     │
-     ▼
-Vector store (Chroma / FAISS / Qdrant / …)
-     │
-     ▼
-[StaleIndexDetector]           ← SHA256 manifest: source files vs last build
-     │
-     ▼
-[RetrievalHealthCheck]         ← labeled recall@k or quick substring smoke probes
-     │
-     ▼
-[SmartThresholdHybridRetriever]  ← threshold + optional BM25 fallback
-[FailoverRetriever]              ← primary → fallback on exception or empty results
-     │
-     ▼
-[ContextWindowGuard]           ← rank + trim chunks to token budget (8 model presets)
-[OverlappingContextStitcher]   ← merge adjacent chunks from same source
-     │
-     ▼
-[AdaptiveRAGRetriever]         ← QueryVariationsStrategy / MultiHopFallbackStrategy
-     │
-     ▼
-[RAGEvaluator]                 ← recall@k, nDCG, faithfulness (heuristic + LLM judge)
-```
-
----
-
-## Module reference
-
-### `ragfallback.diagnostics`
-
-**ChunkQualityChecker** — detects too-short, too-long, mid-sentence, and duplicate chunks before embedding.
-
-```python
-from ragfallback.diagnostics import ChunkQualityChecker
-
-report = ChunkQualityChecker(min_chars=100, max_chars=8000).check(docs)
-if report.has_issues:
-    fixed = ChunkQualityChecker().auto_fix(docs)
-```
-
-**EmbeddingGuard** — validates dimension, NaN, and zero-vectors before writing to any index.
-
-```python
-from ragfallback.diagnostics import EmbeddingGuard
-
-guard = EmbeddingGuard(expected_dim=384)
-guard.validate(embeddings_model).raise_if_failed()  # model-level check
-guard.validate_raw_vectors(vectors).raise_if_failed()  # pre-computed vectors
-```
-
-**EmbeddingQualityProbe** — heuristic domain-fit check: if similarity scores are uniformly low, the model is likely a poor domain match.
-
-```python
-from ragfallback.diagnostics import EmbeddingQualityProbe
-
-result = EmbeddingQualityProbe().run(embeddings, query="...", reference_snippets=[...])
-if not result.ok:
-    print(result.warnings)  # "consider domain-specific model"
-```
-
-**RetrievalHealthCheck** — labeled recall@k or quick substring smoke probes against a live vector store.
-
-```python
-from ragfallback.diagnostics import RetrievalHealthCheck
-
-health = RetrievalHealthCheck(k=5)
-report = health.run_substring_probes(vector_store, {"What is Python?": "high-level language"})
-print(report.hit_rate, report.avg_latency_ms)
-```
-
-**StaleIndexDetector** — SHA256 manifest to catch when source files changed since last index build.
-
-```python
-from ragfallback.diagnostics import StaleIndexDetector
-
-det = StaleIndexDetector(manifest_path="./index_manifest.json")
-det.record_paths(["./docs/policy.md"])  # record after build
-report = det.check_paths(["./docs/policy.md"])  # check before serving
-if report.has_stale:
-    print(report.summary())
-```
-
-**ContextWindowGuard** — ranks and trims retrieved chunks to fit a token budget; 8 model presets included.
-
-```python
-from ragfallback.diagnostics import ContextWindowGuard
-
-guard = ContextWindowGuard.from_model_name("gpt-4o")
-selected, report = guard.select(query, retrieved_docs, embeddings)
-```
-
-**OverlappingContextStitcher** — merges consecutive chunks from the same source so cross-boundary answers aren't split.
-
-```python
-from ragfallback.diagnostics import OverlappingContextStitcher
-
-merged = OverlappingContextStitcher().stitch(retrieved_docs)
-```
-
-**sanitize_documents** — normalizes list/dict/bytes metadata to JSON-safe scalars before any vector store write.
-
-```python
-from ragfallback.diagnostics import sanitize_documents
-
-clean_docs = sanitize_documents(dirty_docs)  # safe for Chroma, Pinecone, Qdrant
-```
-
----
-
-### `ragfallback.retrieval`
-
-**SmartThresholdHybridRetriever** — score-threshold gating with automatic BM25 fallback when dense scores are weak. Supports `distance`, `similarity`, and `relative` score modes.
-
-```python
-from ragfallback.retrieval import SmartThresholdHybridRetriever
-
-retriever = SmartThresholdHybridRetriever.from_documents(
-    docs, embeddings, dense_threshold=0.5, k=4
-)  # pip install ragfallback[hybrid] for BM25
-```
-
-**FailoverRetriever** — if the primary retriever raises or returns fewer than `min_results` docs, automatically switches to a secondary.
-
-```python
-from ragfallback.retrieval import FailoverRetriever
-
-retriever = FailoverRetriever(primary=chroma_retriever, fallback=faiss_retriever, min_results=1)
-```
-
-**ReRankerGuard** — pass-through hook for a second-stage reranker. Sits after vector retrieval, before the prompt; does nothing until you wire a `rerank_fn`, so it's safe to add to a pipeline today and fill in a cross-encoder later.
-
-```python
-from ragfallback.retrieval import ReRankerGuard
-
-guard = ReRankerGuard(rerank_fn=my_cross_encoder_rerank, top_n=4)
-docs = guard.apply(query, retrieved_docs)
-```
-
-**RetrieverAsVectorStore** — wraps any LangChain `BaseRetriever` (e.g. `SmartThresholdHybridRetriever`) so it exposes the `as_retriever()` surface `AdaptiveRAGRetriever` expects.
-
-```python
-from ragfallback.retrieval import RetrieverAsVectorStore
-
-shim = RetrieverAsVectorStore(hybrid_retriever)
-retriever = AdaptiveRAGRetriever(vector_store=shim, llm=llm)
-```
-
----
-
-### `ragfallback.core`
-
-**AdaptiveRAGRetriever** — wraps a vector store with retry logic and pluggable fallback strategies. On each attempt it retrieves, scores confidence, and either returns the answer or tries the next strategy.
-
-```python
-from ragfallback import AdaptiveRAGRetriever
-from ragfallback.strategies import QueryVariationsStrategy
-
-retriever = AdaptiveRAGRetriever(
-    vector_store=store,
-    llm=llm,  # any LangChain LLM
-    strategies=[QueryVariationsStrategy(num_variations=2)],
-    confidence_threshold=0.7,
-    max_attempts=3,
-)
-result = retriever.retrieve("What is the refund policy?")
-print(result.answer, result.confidence, result.attempts_used)
-```
-
-Requires `MISTRAL_API_KEY` (or any LangChain-compatible LLM passed via `llm=`).
-
-**aquery_with_fallback** — native async version of `query_with_fallback()`. Real coroutine using LangChain `ainvoke()` — not a thread-pool wrapper. Falls back to thread pool automatically if the underlying LLM doesn't implement `ainvoke`.
-
-```python
-import asyncio
-
-# async-native — LLM API calls overlap instead of serializing
-result = await retriever.aquery_with_fallback("What is the refund policy?")
-print(result.answer, result.confidence, result.attempts)
-
-# works in FastAPI, GoldenRunner.run_async(), or any async context
-asyncio.run(retriever.aquery_with_fallback("How do API tokens expire?"))
-```
-
----
-
-### `ragfallback.strategies`
-
-**QueryVariationsStrategy** — LLM rewrites the original query into N variations to broaden retrieval recall. Requires an LLM.
-
-**MultiHopFallbackStrategy** — decomposes complex multi-step questions into sub-questions, retrieves each independently, then synthesises a final answer. Requires an LLM.
-
-```python
-from ragfallback.strategies import MultiHopFallbackStrategy
-
-result = MultiHopFallbackStrategy(max_hops=3).run(question, retriever, llm)
-print(result.final_answer, result.total_hops)
-```
-
----
-
-### `ragfallback.tracking`
-
-**CostTracker** — token cost ledger for a RAG session. Records spend per operation, enforces an optional budget ceiling, and surfaces a report at the end.
-
-```python
-from ragfallback import CostTracker
-
-tracker = CostTracker(budget_usd=1.0)
-tracker.record(model="mistral-small-latest", input_tokens=500, output_tokens=200)
-print(tracker.get_report())  # total cost, budget remaining
-```
-
-**MetricsCollector** — records latency, success/failure counts, and confidence scores across retrieval attempts.
-
-```python
-from ragfallback import MetricsCollector
-
-metrics = MetricsCollector()
-# passed automatically to AdaptiveRAGRetriever; or record manually:
-metrics.record_attempt(success=True, latency_ms=120, confidence=0.85)
-print(metrics.get_stats())
-```
-
-**CacheMonitor** — wraps any LangChain retriever to track cache hit rate, per-category latency (hit vs miss), TTL-based expiry, and LRU eviction. Zero new dependencies — stdlib only. Supports both sync `invoke()` and async `ainvoke()`.
-
-```python
-from ragfallback.tracking import CacheMonitor
-
-monitor = CacheMonitor(max_size=512, ttl_seconds=600)
-cached_retriever = monitor.wrap_retriever(store.as_retriever(search_kwargs={"k": 4}))
-
-# use cached_retriever exactly like any LangChain retriever
-docs = cached_retriever.invoke("What is the refund policy?")
-
-print(monitor.summary())
-# → cache hit_rate=34.7% hits=26 misses=49 entries=49 evictions=0
-
-stats = monitor.get_stats()
-print(stats.hit_rate, stats.avg_hit_latency_ms, stats.avg_miss_latency_ms)
-```
-
-Pass to `GoldenRunner` to capture cache efficiency alongside RAGAS scores:
-
-```python
-from ragfallback.mlops import GoldenRunner, RagasHook
-from ragfallback.tracking import CacheMonitor
-
-monitor = CacheMonitor(max_size=256, ttl_seconds=300)
-runner = GoldenRunner(
-    retriever=retriever,
-    ragas_hook=hook,
-    dataset="examples/golden_qa.json",
-    cache_monitor=monitor,
-)
-report = asyncio.run(runner.run_async())
-print(report.cache_stats)
-# → {"hit_rate": 0.347, "hits": 26, "misses": 49, "evictions": 0, ...}
-```
-
----
-
-### `ragfallback.evaluation`
-
-**RAGEvaluator** — scores `recall@k`, `nDCG`, and `faithfulness` without external services. Optional LLM judge hook for higher accuracy.
-
-```python
-from ragfallback.evaluation import RAGEvaluator
-
-ev = RAGEvaluator()
-score = ev.evaluate(question, answer, context_docs, ground_truth="...")
-print(score.overall_score, score.faithfulness_score, score.recall_at_k)
-print(ev.batch_summary([score]))
-```
-
----
-
-## Examples — real public datasets
-
-| Example                   | Dataset                                         | Command                                         |
-| ------------------------- | ----------------------------------------------- | ----------------------------------------------- |
-| UC-1: retrieval health    | SQuAD Wikipedia                                 | `python examples/uc1_retrieval_health.py`       |
-| UC-2: embedding guard     | — (dimension check)                             | `python examples/uc2_embedding_guard.py`        |
-| UC-3: chunk quality       | SQuAD Wikipedia                                 | `python examples/uc3_chunk_quality.py`          |
-| UC-4: context window      | sample KB                                       | `python examples/uc4_context_window.py`         |
-| UC-5: hybrid + failover   | FAISS + BM25                                    | `python examples/uc5_hybrid_failover.py`        |
-| UC-6: adaptive RAG        | SQuAD Wikipedia (needs `MISTRAL_API_KEY` or Ollama) | `python examples/uc6_adaptive_rag.py`       |
-| UC-7: RAG evaluator       | PubMedQA (MIT) — real medical Q&A               | `python examples/uc7_rag_evaluator.py`          |
-| UC-8: context stitcher    | ChromaDB + HR chunks                            | `python examples/uc8_context_stitcher.py`       |
-| UC-9: embedding probe     | — (similarity check)                            | `python examples/uc9_embedding_probe.py`        |
-| UC-10: metadata sanitizer | ChromaDB dirty docs                             | `python examples/uc10_metadata_sanitizer.py`    |
-| End-to-end on SQuAD       | SQuAD Wikipedia (CC BY-SA 4.0)                  | `python examples/real_data_demo.py`             |
-| Financial news RAG        | nickmuchi/financial-classification (Apache 2.0) | `python examples/financial_risk_analysis.py`    |
-| Legal contract RAG        | theatticusproject/cuad-qa (CC BY 4.0)           | `python examples/legal_document_analysis.py`    |
-| Medical abstract RAG      | qiaojin/PubMedQA (MIT)                          | `python examples/medical_research_synthesis.py` |
-| MLOps: build golden dataset | SQuAD (CC BY-SA 4.0) + SciQ (CC BY-NC 3.0)   | `python examples/build_golden_dataset.py`       |
-| MLOps: full demo            | SQuAD golden set, zero API keys                | `python examples/mlops_demo.py`                 |
-| MLOps: CI regression gate   | SQuAD golden set, committed baseline           | `python examples/ci_regression_gate.py`         |
-
----
-
-## Verified numbers — SQuAD Wikipedia validation set
-
-`python examples/real_data_demo.py` runs every module on 200 real Wikipedia passages. Numbers below are printed by the script on every run — not made up.
-
-```
-Passages indexed     : 200 real Wikipedia passages
-Q&A pairs            : 10 570 (ground truth available)
-ChunkQualityChecker  : 1 violation  (avg 662 chars/passage)
-EmbeddingGuard       : OK — dim 384 matches expected 384
-
-RetrievalHealthCheck (20 real Q&A substring probes):
-  Hit rate   : 100.0%
-  Avg latency: 25 ms per query
-
-RAGEvaluator (10 real Q&A pairs, heuristic, no LLM judge):
-  Pass rate        : 2/10  (heuristic; rises with LLM judge)
-  Avg recall@k     : 100.0%
-  Avg faithfulness : 79.5%
-  Avg overall      : 62.9%
-```
-
-Install: `pip install ragfallback[chroma,huggingface,real-data]`
-
-Dataset: [rajpurkar/squad](https://huggingface.co/datasets/rajpurkar/squad) — CC BY-SA 4.0
-
----
+RAG pipelines rarely fail loudly. They return an empty context, a half-relevant chunk, or a confident-sounding wrong answer, and nothing in a typical LangChain + vector-store stack tells you it happened. ragfallback is not another retrieval framework: it is a set of guards, fallbacks, and checks that wrap the retriever, vector store, and LLM you already use, so degradation shows up in a log line or a failed CI job instead of a support ticket.
+
+| If your stack today is...                         | ragfallback adds                                                                                     |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A raw LangChain retriever with no fallback        | `FailoverRetriever` and `SmartThresholdHybridRetriever`: a second path when the first comes back empty |
+| RAGAS or another eval library, run by hand        | `GoldenRunner` + `BaselineRegistry`: the same metrics wired into a gate that fails the build          |
+| Nothing: chunking and indexing "just work"        | `ChunkQualityChecker` + `EmbeddingGuard`: the two most common silent corruption sources               |
+| Hand-rolled retry logic around an LLM call        | `AdaptiveRAGRetriever`: confidence-scored retries with pluggable strategies, sync and async           |
+
+## Features
+
+| #  | Production failure                                    | Module                                             | Recipe                                  |
+|----|-------------------------------------------------------|----------------------------------------------------|-----------------------------------------|
+| 1  | Query wording mismatch, so retrieval silently misses  | `AdaptiveRAGRetriever` + `QueryVariationsStrategy` | `offline_support_bot.py`                |
+| 2  | Embedding model switch corrupts index dimensions      | `EmbeddingGuard`, `EmbeddingValidator`             | `offline_ingest_preflight.py`           |
+| 3  | Bad chunks (too short, too long, mid-sentence)        | `ChunkQualityChecker` (`check`, `auto_fix`)        | `offline_ingest_preflight.py`           |
+| 4  | Retrieved chunks overflow the LLM context window      | `ContextWindowGuard` (10 model presets)             | `offline_hybrid_failover.py`            |
+| 5  | Keyword and acronym queries fail dense retrieval      | `SmartThresholdHybridRetriever` (BM25 fallback)    | `offline_hybrid_failover.py`            |
+| 6  | Primary retriever outage returns nothing              | `FailoverRetriever`                                | `offline_hybrid_failover.py`            |
+| 7  | Multi-step questions fail single-shot RAG             | `MultiHopFallbackStrategy`                         | `uc6_multi_hop_demo.py`                 |
+| 8  | Index serves stale data after document updates        | `StaleIndexDetector` (SHA-256 manifest)            | `offline_ingest_preflight.py`           |
+| 9  | Metadata a vector store rejects (lists, dicts, bytes) | `sanitize_documents`, `sanitize_metadata`          | `offline_ingest_preflight.py`           |
+| 10 | Answers split across adjacent chunks                  | `OverlappingContextStitcher`                       | `uc8_context_stitcher.py`               |
+| 11 | Answer quality invisible in production                | `RAGEvaluator` (heuristic or LLM judge)            | `uc7_rag_evaluator.py`                  |
+| 12 | Metric regression after a model, embedder, or chunker change | `GoldenRunner` + `BaselineRegistry` + `RagasHook` | `offline_eval_gate.py`           |
+| 13 | LLM spend and retry rates nobody tracks               | `CostTracker`, `MetricsCollector`, `CacheMonitor`  | `offline_support_bot.py`                |
+
+Everything except the LLM-driven strategies runs locally with no API key. The whole package is type-annotated and ships `py.typed`.
 
 ## Install
 
 ```bash
-pip install ragfallback                              # core only
-pip install ragfallback[chroma,huggingface]          # golden path (no API keys)
-pip install ragfallback[faiss,huggingface]           # FAISS instead of Chroma
-pip install ragfallback[hybrid]                      # adds BM25 (rank_bm25)
-pip install ragfallback[real-data]                   # real dataset examples (HuggingFace datasets)
-pip install ragfallback[mlops]                       # MLOps eval layer (RAGAS + MLflow + Locust)
+pip install ragfallback                         # core
+pip install "ragfallback[hybrid]"               # + BM25 fallback (rank_bm25, faiss-cpu)
+pip install "ragfallback[chroma,huggingface]"   # local Chroma + sentence-transformers, no API key
+pip install "ragfallback[mlops]"                # + RAGAS, MLflow, Locust for the eval layer
 ```
 
-| Extra         | Installs                               |
-| ------------- | -------------------------------------- |
-| `chroma`      | chromadb                               |
-| `faiss`       | faiss-cpu                              |
-| `huggingface` | sentence-transformers, huggingface-hub |
-| `hybrid`      | rank_bm25, langchain-community         |
-| `real-data`   | datasets                               |
-| `openai`      | langchain-openai, openai               |
-| `mlops`       | ragas, mlflow, locust, aiohttp         |
+With [uv](https://docs.astral.sh/uv/):
 
----
+```bash
+uv add ragfallback            # or: uv pip install "ragfallback[hybrid]"
+```
 
-## Subpackage import map
+<details>
+<summary>All extras</summary>
+
+| Extra                   | Installs                                                                  |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `hybrid`                | rank_bm25, faiss-cpu                                                      |
+| `faiss` / `chroma` / `qdrant` | faiss-cpu / chromadb / qdrant-client                                |
+| `huggingface`           | sentence-transformers, transformers, huggingface-hub, langchain-huggingface |
+| `openai` / `anthropic` / `mistral` | the matching LangChain chat-model package                      |
+| `real-data`             | datasets (for the SQuAD / PubMedQA / CUAD examples)                       |
+| `mlops`                 | ragas, mlflow, locust, aiohttp                                            |
+| `open-source` / `paid` / `all` | convenience bundles, see `pyproject.toml`                          |
+| `dev`                   | pytest, pytest-cov, ruff, mypy, pre-commit, build, twine                  |
+
+</details>
+
+Requires Python 3.10+. Tested with LangChain 1.x on Python 3.10-3.13.
+
+## Quickstart
+
+Runs as-is with no API key or model download (`DeterministicFakeEmbedding` stands in for your embedder):
 
 ```python
-from ragfallback import (
-    AdaptiveRAGRetriever,
-    QueryResult,
-    CostTracker,
-    MetricsCollector,
-    CacheMonitor,
-)
+from langchain_core.documents import Document
+from langchain_core.embeddings import DeterministicFakeEmbedding  # stand-in: use your embedder
+from langchain_core.runnables import RunnableLambda
+from langchain_core.vectorstores import InMemoryVectorStore
 
+from ragfallback.diagnostics import ChunkQualityChecker, EmbeddingGuard, sanitize_documents
+from ragfallback.evaluation import RAGEvaluator
+from ragfallback.retrieval import FailoverRetriever
+
+docs = [
+    Document(
+        page_content="The refund window is 30 days from the original purchase date.",
+        metadata={"source": "billing.md", "tags": ["billing", "refunds"]},
+    ),
+    Document(page_content="See above.", metadata={"source": "billing.md"}),
+]
+report = ChunkQualityChecker(min_chars=20, target_overlap_ratio=0).check(docs)
+print(report.violations)  # ['chunk[1] too short (10 chars, 2 words; ...)']
+docs = sanitize_documents(docs[:1])  # list metadata -> JSON string, safe for any store
+
+embeddings = DeterministicFakeEmbedding(size=384)
+EmbeddingGuard(expected_dim=384).validate(embeddings).raise_if_failed()  # raises on mismatch
+store = InMemoryVectorStore.from_documents(docs, embeddings)
+
+empty_index = RunnableLambda(lambda q: [])  # a primary index that silently returns nothing
+retriever = FailoverRetriever(primary=empty_index, fallback=store.as_retriever(), min_results=1)
+hits = retriever.invoke("How long is the refund window?")
+print(hits[0].metadata["ragfallback_retrieval_source"])  # secondary_failover
+
+score = RAGEvaluator().evaluate(
+    "How long is the refund window?",
+    "The refund window is 30 days from the original purchase date.",
+    [d.page_content for d in hits],
+    ground_truth="30 days",
+)
+print(f"overall={score.overall_score:.2f} passed={score.passed}")  # overall=0.87 passed=True
+```
+
+### Retry low-confidence answers (needs an LLM)
+
+`AdaptiveRAGRetriever` retrieves, answers, scores confidence, and moves to the next query or strategy when confidence is below `min_confidence`. Any LangChain chat model works. This snippet needs `pip install "ragfallback[openai]"` and `OPENAI_API_KEY`:
+
+```python
+from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+from ragfallback import AdaptiveRAGRetriever, CostTracker
+from ragfallback.strategies import QueryVariationsStrategy
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+store = InMemoryVectorStore.from_texts(
+    [
+        "The refund window is 30 days from the original purchase date.",
+        "API tokens expire after 90 days and must be rotated.",
+    ],
+    embeddings,
+)
+retriever = AdaptiveRAGRetriever(
+    vector_store=store,
+    llm=ChatOpenAI(model="gpt-4o-mini", temperature=0),
+    embedding_model=embeddings,
+    fallback_strategies=[QueryVariationsStrategy(num_variations=2)],
+    max_attempts=3,
+    min_confidence=0.7,
+    cost_tracker=CostTracker(budget=0.10),
+)
+result = retriever.query_with_fallback("How long do I have to get my money back?")
+print(result.answer, result.confidence, result.attempts, result.cost)
+```
+
+To see the retry path without a key, run [`examples/offline_support_bot.py`](https://github.com/irfanalidv/ragfallback/blob/main/examples/offline_support_bot.py): the first attempt answers "Not found", is rejected on confidence, and the rewritten query ("refund window") succeeds on attempt 2.
+
+`aquery_with_fallback()` is the native async version: it uses `ainvoke()` on the retriever and LLM and falls back to a thread pool when a component has no async implementation.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph ingest["Ingest (ragfallback.diagnostics)"]
+        direction TB
+        D[Documents] --> CQ[ChunkQualityChecker]
+        CQ --> SAN[sanitize_documents]
+        SAN --> EG[EmbeddingGuard / EmbeddingValidator]
+        EG --> VS[(Vector store<br/>Chroma, FAISS, Qdrant, ...)]
+        VS -. build manifest .-> SI[StaleIndexDetector]
+    end
+
+    subgraph query["Query (ragfallback.core)"]
+        direction TB
+        Q[Question] --> AR[AdaptiveRAGRetriever]
+        AR -->|1. generate_queries| ST[QueryVariationsStrategy<br/>MultiHopFallbackStrategy]
+        AR -->|2. retrieve| RT[vector_store.as_retriever]
+        AR -->|3. answer| LLM[LLM]
+        AR -->|4. score| CS[ConfidenceScorer]
+        CS -->|below min_confidence| AR
+        AR --> QR[QueryResult]
+        AR -.-> TR[CostTracker / MetricsCollector]
+    end
+
+    subgraph retrieval["Retrieval (ragfallback.retrieval)"]
+        direction TB
+        FO[FailoverRetriever<br/>primary, then fallback] -->|e.g. primary| HY[SmartThresholdHybridRetriever<br/>dense threshold, then BM25]
+        RR[ReRankerGuard]
+        CW[ContextWindowGuard<br/>OverlappingContextStitcher]
+    end
+
+    subgraph ops["Evaluate (ragfallback.evaluation, ragfallback.mlops)"]
+        direction TB
+        GR[GoldenRunner] --> RH[RagasHook<br/>RAGAS or RAGEvaluator]
+        RH --> BR[BaselineRegistry]
+        BR -->|metric drop| ERR[RegressionError]
+    end
+
+    VS --> RT
+    RT -.->|RetrieverAsVectorStore shim| FO
+    GR -->|drives| AR
+```
+
+Key design decisions:
+
+- **Wrap, don't replace.** Every component takes LangChain objects (`Embeddings`, `VectorStore`, `BaseRetriever`, chat models) and returns LangChain `Document`s, so it drops into an existing pipeline. Custom retrievers plug into `AdaptiveRAGRetriever` through the `RetrieverAsVectorStore` shim.
+- **Fail soft at query time, fail hard at build time.** Retrieval-time components degrade (fallback index, BM25, best-effort answer) and log a warning. Ingest-time and CI components (`EmbeddingGuard.raise_if_failed`, `BaselineRegistry.compare_or_fail`) raise, because that is where a hard stop is cheap.
+- **Confidence-gated retries.** An attempt is accepted only when `ConfidenceScorer` returns at least `min_confidence` and the answer is not a "not found" placeholder. Otherwise the next query or strategy runs, up to `max_attempts`; if every attempt fails, the highest-confidence answer is returned with its score so callers can decide.
+- **Optional dependencies stay optional.** BM25, RAGAS, MLflow, tiktoken, and every vector-store client are imported lazily; without them the code falls back (for example `RagasHook` uses the heuristic `RAGEvaluator`) or raises an `ImportError` naming the extra to install.
+
+## Use cases and recipes
+
+Offline recipes (no API key, no downloads; they use the bundled [`examples/sample_kb`](https://github.com/irfanalidv/ragfallback/tree/main/examples/sample_kb) and are run in CI):
+
+| Script | What it shows |
+| ------ | ------------- |
+| [`offline_support_bot.py`](https://github.com/irfanalidv/ragfallback/blob/main/examples/offline_support_bot.py) | Customer-support bot recovers from "money back" vs "refund window" via query rewriting; reports retries and estimated spend |
+| [`offline_ingest_preflight.py`](https://github.com/irfanalidv/ragfallback/blob/main/examples/offline_ingest_preflight.py) | Chunk checks + `auto_fix`, metadata sanitization, embedding-width guard, stale-index diff after doc edits |
+| [`offline_hybrid_failover.py`](https://github.com/irfanalidv/ragfallback/blob/main/examples/offline_hybrid_failover.py) | Keyword queries ("PKCE", "Retry-After") routed to BM25, a dead primary index failed over, context trimmed to a budget (needs `[hybrid]`) |
+| [`offline_eval_gate.py`](https://github.com/irfanalidv/ragfallback/blob/main/examples/offline_eval_gate.py) | Golden-set run, baseline saved, then an ingestion bug caught by `RegressionError` |
+
+<details>
+<summary>Examples on real public datasets (need model downloads; some need an LLM)</summary>
+
+| Example                     | Dataset                                         | Command                                         |
+| --------------------------- | ----------------------------------------------- | ----------------------------------------------- |
+| UC-1: retrieval health      | SQuAD Wikipedia                                 | `python examples/uc1_retrieval_health.py`       |
+| UC-2: embedding guard       | (dimension check)                               | `python examples/uc2_embedding_guard.py`        |
+| UC-3: chunk quality         | SQuAD Wikipedia                                 | `python examples/uc3_chunk_quality.py`          |
+| UC-4: context window        | sample KB                                       | `python examples/uc4_context_window.py`         |
+| UC-5: hybrid + failover     | FAISS + BM25                                    | `python examples/uc5_hybrid_failover.py`        |
+| UC-6: adaptive RAG          | SQuAD Wikipedia (needs `MISTRAL_API_KEY` or Ollama) | `python examples/uc6_adaptive_rag.py`       |
+| UC-6b: multi-hop            | needs an LLM                                    | `python examples/uc6_multi_hop_demo.py`         |
+| UC-7: RAG evaluator         | PubMedQA (MIT)                                  | `python examples/uc7_rag_evaluator.py`          |
+| UC-8: context stitcher      | ChromaDB + HR chunks                            | `python examples/uc8_context_stitcher.py`       |
+| UC-9: embedding probe       | (similarity check)                              | `python examples/uc9_embedding_probe.py`        |
+| UC-10: metadata sanitizer   | ChromaDB dirty docs                             | `python examples/uc10_metadata_sanitizer.py`    |
+| End-to-end on SQuAD         | SQuAD Wikipedia (CC BY-SA 4.0)                  | `python examples/real_data_demo.py`             |
+| Financial news RAG          | nickmuchi/financial-classification (Apache 2.0) | `python examples/financial_risk_analysis.py`    |
+| Legal contract RAG          | theatticusproject/cuad-qa (CC BY 4.0)           | `python examples/legal_document_analysis.py`    |
+| Medical abstract RAG        | qiaojin/PubMedQA (MIT)                          | `python examples/medical_research_synthesis.py` |
+| MLOps: build golden dataset | SQuAD (CC BY-SA 4.0) + SciQ (CC BY-NC 3.0)      | `python examples/build_golden_dataset.py`       |
+| MLOps: full demo            | SQuAD golden set, no API keys                   | `python examples/mlops_demo.py`                 |
+| MLOps: CI regression gate   | SQuAD golden set, committed baseline            | `python examples/ci_regression_gate.py`         |
+
+There is also a [Colab notebook](https://colab.research.google.com/github/irfanalidv/ragfallback/blob/main/ragfallback_colab.ipynb).
+
+**Numbers from `examples/real_data_demo.py`** (200 SQuAD validation passages, `all-MiniLM-L6-v2`, heuristic evaluation with no LLM judge; latency depends on your machine):
+
+```
+ChunkQualityChecker  : 1 violation (low neighbour overlap; avg 662 chars/passage)
+EmbeddingGuard       : OK, dim 384 matches expected 384
+RetrievalHealthCheck : 100.0% hit rate on 20 real Q&A substring probes
+RAGEvaluator (10 Q&A): pass rate 2/10, avg recall@k 100.0%, avg faithfulness 79.5%, avg overall 62.9%
+```
+
+Install for these: `pip install "ragfallback[chroma,huggingface,real-data]"`.
+
+</details>
+
+## Configuration
+
+Most features need no configuration. LLM-backed features read the usual provider variables through LangChain; the helpers in `ragfallback.utils` read these:
+
+| Variable | Used by | Default |
+| -------- | ------- | ------- |
+| `MISTRAL_API_KEY` (or `MISTRAL_API_TOKEN`) | `create_mistral_llm`, `create_llm_from_env`, LLM examples and tests | unset |
+| `MISTRAL_MODEL` | `create_mistral_llm`, `create_llm_from_env` | `mistral-small-latest` |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` | `create_openai_llm` / `create_anthropic_llm` (read by the LangChain client) | unset |
+| `OLLAMA_MODEL`, `OLLAMA_BASE_URL` | `examples/chroma_real_kb_demo.py` | `llama3`, `http://localhost:11434` |
+
+`load_env()` loads a `.env` file when `python-dotenv` is installed (copy `.env.example`).
+
+Main options:
+
+| Component | Option | Default | Meaning |
+| --------- | ------ | ------- | ------- |
+| `AdaptiveRAGRetriever` | `min_confidence` | `0.7` | Accept an answer at or above this confidence |
+| | `max_attempts` | `3` | Total retrieval + answer attempts across strategies |
+| | `fallback_strategies` | `[QueryVariationsStrategy()]` | Ordered strategies to try |
+| `CostTracker` | `budget`, `alert_threshold`, `pricing_config` | `None`, `0.8`, built-in table | USD budget, warning ratio, per-1M-token prices (prefix-matched model names) |
+| `FailoverRetriever` | `min_results` | `1` | Fewer results than this from `primary` triggers the fallback |
+| `SmartThresholdHybridRetriever` | `score_mode`, `min_similarity` / `max_distance`, `fetch_k`, `final_k` | `"distance"`, `0.7` / `None`, `20`, `5` | How dense scores are thresholded before BM25 takes over |
+| `ContextWindowGuard` | `max_context_tokens` or `from_model_name(...)` | `6000` | Token budget for retrieved context |
+| `BaselineRegistry.compare_or_fail` | `threshold`, `latency_threshold` | `0.05`, same | Allowed relative drop per metric (latency: allowed rise) |
+| `CacheMonitor` | `max_size`, `ttl_seconds` | `256`, `300` | LRU size and TTL for cached retrievals |
+
+## API overview
+
+| Import | What it does |
+| ------ | ------------ |
+| `ragfallback.AdaptiveRAGRetriever` | Retrieve, answer, score, retry; `query_with_fallback()` / `aquery_with_fallback()` return a `QueryResult(answer, source, confidence, attempts, cost, intermediate_steps)` |
+| `ragfallback.strategies.QueryVariationsStrategy` | LLM rewrites of the question (original first on attempt 1) |
+| `ragfallback.strategies.MultiHopFallbackStrategy` | Decompose into sub-questions, retrieve each, synthesise; `run(question, retriever, llm)` returns `MultiHopResult` |
+| `ragfallback.diagnostics.ChunkQualityChecker` | `check()` size, word-count, sentence-boundary, and neighbour-overlap report; `auto_fix()` merge-and-split repair |
+| `ragfallback.diagnostics.EmbeddingGuard` | Dimension, zero-vector, and NaN checks for a model, a batch, or raw vectors |
+| `ragfallback.diagnostics.EmbeddingValidator` | Compare the model's width with what the vector store reports |
+| `ragfallback.diagnostics.EmbeddingQualityProbe` | Heuristic domain-fit check from query-to-reference similarity |
+| `ragfallback.diagnostics.RetrievalHealthCheck` | Labeled recall@k (`run`), substring smoke probes, or `quick_check` from random docs |
+| `ragfallback.diagnostics.StaleIndexDetector` | SHA-256 manifest of source files or chunk contents; reports changed / removed / new |
+| `ragfallback.diagnostics.ContextWindowGuard` | Rank by similarity and pack into a token budget; optional lost-in-the-middle reordering |
+| `ragfallback.diagnostics.OverlappingContextStitcher` | Merge consecutive `chunk_index` chunks from the same source |
+| `ragfallback.diagnostics.sanitize_documents` | Flatten list / dict / bytes metadata to JSON-safe scalars |
+| `ragfallback.retrieval.FailoverRetriever` | Primary, then fallback on exception or too few results |
+| `ragfallback.retrieval.SmartThresholdHybridRetriever` | Score threshold on dense results, BM25 when nothing survives |
+| `ragfallback.retrieval.ReRankerGuard` | Slot for a second-stage reranker (`rerank_fn`) plus `top_n` cut |
+| `ragfallback.retrieval.RetrieverAsVectorStore` | Use any retriever where `AdaptiveRAGRetriever` expects a vector store |
+| `ragfallback.evaluation.RAGEvaluator` | Context precision, faithfulness, relevance, gold recall; heuristic or LLM judge |
+| `ragfallback.evaluation.recall_at_k`, `ndcg_at_k` | Ranking metrics |
+| `ragfallback.CostTracker`, `MetricsCollector`, `CacheMonitor` | Spend per operation and budget, success / attempts / latency, retrieval cache hit rate |
+| `ragfallback.mlops.GoldenRunner`, `RagasHook`, `BaselineRegistry` | Golden-set evaluation, RAGAS (or heuristic) scoring, regression gate |
+| `ragfallback.mlops.QuerySimulator`, `generate_locustfile`, `MLflowLogger` | Adversarial query variants, Locust load test file, MLflow logging |
+
+<details>
+<summary>Module reference with snippets</summary>
+
+The snippets below assume `docs` (a list of `Document`), `embeddings`, `store` (a vector store), and, where noted, `llm`.
+
+**Diagnostics**
+
+```python
 from ragfallback.diagnostics import (
     ChunkQualityChecker,
+    ContextWindowGuard,
     EmbeddingGuard,
     EmbeddingQualityProbe,
+    OverlappingContextStitcher,
     RetrievalHealthCheck,
     StaleIndexDetector,
-    ContextWindowGuard,
-    OverlappingContextStitcher,
-    sanitize_documents,
-    sanitize_metadata,
 )
+
+report = ChunkQualityChecker(min_chars=100, max_chars=8000).check(docs)
+if report.has_issues:
+    fixed_texts = ChunkQualityChecker().auto_fix(docs)  # list[str]; review before embedding
+
+EmbeddingGuard(expected_dim=384).validate(embeddings).raise_if_failed()
+EmbeddingGuard.validate_raw_vectors([[0.1, 0.2], [0.3, 0.4]], expected_dim=2).raise_if_failed()
+
+probe = EmbeddingQualityProbe().run(
+    embeddings, query="refund policy", reference_snippets=["Refunds are issued within 30 days."]
+)
+print(probe.ok, probe.warnings)
+
+health = RetrievalHealthCheck(k=5).run_substring_probes(store, {"refund window": "30 days"})
+print(health.hit_rate, health.avg_latency_ms)
+
+detector = StaleIndexDetector(manifest_path="index_manifest.json")
+detector.record_paths(["docs/policy.md"])  # after an index build
+print(detector.check_paths(["docs/policy.md"]).summary())  # before serving
+
+guard = ContextWindowGuard.from_model_name("gpt-4o")
+selected, window = guard.select("refund policy", docs, embeddings)
+merged = OverlappingContextStitcher().stitch(selected)
+```
+
+**Retrieval**
+
+```python
+from ragfallback import AdaptiveRAGRetriever
 from ragfallback.retrieval import (
-    SmartThresholdHybridRetriever,
     FailoverRetriever,
     ReRankerGuard,
     RetrieverAsVectorStore,
+    SmartThresholdHybridRetriever,
 )
-from ragfallback.strategies import QueryVariationsStrategy, MultiHopFallbackStrategy
-from ragfallback.evaluation import RAGEvaluator
-from ragfallback.tracking import CacheMonitor, CacheStats
-from ragfallback.mlops import (
-    RagasHook,
-    RagasReport,
-    BaselineRegistry,
-    RegressionError,
-    GoldenRunner,
-    GoldenReport,
-    QuerySimulator,
-    SimQuery,
-    MLflowLogger,
-    generate_locustfile,
+
+hybrid = SmartThresholdHybridRetriever.from_documents(  # needs ragfallback[hybrid]
+    docs, vectorstore=store, score_mode="similarity", min_similarity=0.5, final_k=4
+)
+failover = FailoverRetriever(primary=hybrid, fallback=store.as_retriever(), min_results=1)
+top = ReRankerGuard(rerank_fn=lambda q, ds: ds, top_n=3).apply("q", failover.invoke("q"))
+
+# needs an LLM: plug any retriever into the retry loop
+adaptive = AdaptiveRAGRetriever(
+    vector_store=RetrieverAsVectorStore(hybrid), llm=llm, embedding_model=embeddings
 )
 ```
 
----
+**Tracking**
 
-## MLOps — Evaluation & Regression Gate
+```python
+from ragfallback import CacheMonitor, CostTracker, MetricsCollector
 
-ragfallback ships a complete MLOps evaluation layer for RAG pipelines.
-No API keys required — all metrics use local heuristics by default,
-with optional RAGAS + MLflow when installed.
+costs = CostTracker(budget=1.0)
+with costs.track("answer_generation"):
+    costs.record_tokens(input_tokens=500, output_tokens=200, model="gpt-4o-mini")
+print(costs.get_report())  # total_cost, total_tokens, breakdown, budget_remaining, ...
 
-### Install
+metrics = MetricsCollector()  # AdaptiveRAGRetriever records into this automatically
+metrics.record_success(attempts=1, confidence=0.85, cost=0.0002, latency_ms=120)
+print(metrics.get_stats())
 
-```bash
-pip install ragfallback[chroma,huggingface,real-data,mlops]
+monitor = CacheMonitor(max_size=512, ttl_seconds=600)
+cached = monitor.wrap_retriever(store.as_retriever(search_kwargs={"k": 4}))
+cached.invoke("refund policy")
+cached.invoke("refund policy")
+print(monitor.summary())  # cache hit_rate=50.0% hits=1 misses=1 entries=1 evictions=0
 ```
 
-### Full eval loop
+**Multi-hop (needs an LLM)**
+
+```python
+from ragfallback.strategies import MultiHopFallbackStrategy
+
+result = MultiHopFallbackStrategy(max_hops=3).run(
+    "Which team won the game that was held at the stadium in Santa Clara?",
+    retriever=store.as_retriever(),
+    llm=llm,
+)
+print(result.final_answer, result.total_hops)
+```
+
+</details>
+
+<details>
+<summary>MLOps: evaluation and regression gate</summary>
 
 ```python
 import asyncio
-from ragfallback.mlops import GoldenRunner, RagasHook, BaselineRegistry
+from ragfallback.mlops import BaselineRegistry, GoldenRunner, RagasHook
 
-# 1 — Build evaluation hook (heuristic by default; RAGAS when installed)
-hook = RagasHook(llm=None, embeddings=embeddings)
-
-# 2 — Run against 75 real SQuAD QA pairs
-runner = GoldenRunner(
-    retriever=retriever,  # AdaptiveRAGRetriever instance
-    ragas_hook=hook,
-    dataset="examples/golden_qa.json",
-)
+hook = RagasHook(llm=None, embeddings=embeddings)  # RAGAS when installed, else heuristics
+runner = GoldenRunner(retriever=adaptive, ragas_hook=hook, dataset="examples/golden_qa.json")
 report = asyncio.run(runner.run_async())
+print(report.recall_at_3, report.ragas.faithfulness, report.latency_p95_ms, report.fallback_rate)
 
-print(f"Recall@3        : {report.recall_at_3:.3f}")
-print(f"Faithfulness    : {report.ragas.faithfulness:.3f}")
-print(f"Latency P95     : {report.latency_p95_ms:.0f}ms")
-print(f"Fallback rate   : {report.fallback_rate:.1%}")
-
-# 3 — Regression gate: fails if any metric drops > 5% vs baseline
 registry = BaselineRegistry("baselines.json")
-registry.compare_or_fail(report, dataset="my_dataset")  # raises RegressionError if degraded
-registry.update(report, dataset="my_dataset")  # save new baseline
+registry.compare_or_fail(report, dataset="squad")  # raises RegressionError on a >5% drop
+registry.update(report, dataset="squad")
 ```
 
-### Adversarial query simulation
+Pass `cache_monitor=CacheMonitor(...)` to `GoldenRunner` to get `report.cache_stats` (`cache_hits`, `cache_misses`, `hit_rate`, ...).
+
+Adversarial queries and load tests:
 
 ```python
-from ragfallback.mlops import QuerySimulator
+from ragfallback.mlops import QuerySimulator, generate_locustfile
 
-sim = QuerySimulator()
-queries = ["What is the refund policy?", "How do API rate limits work?"]
-
-# 4 types: short_keyword, long_nl, ambiguous, out_of_domain
-mixed = sim.simulate(queries)
-
-# All 4 types for every query — for stress testing
-unhappy = sim.simulate_unhappy_paths(queries)
-```
-
-### Load testing
-
-```python
-from ragfallback.mlops import generate_locustfile
-
+variants = QuerySimulator().simulate_unhappy_paths(["What is the refund policy?"])
+# short_keyword, long_nl, ambiguous, out_of_domain for every query
 generate_locustfile("locustfile.py", endpoint="http://localhost:8000")
-# Run: locust -f locustfile.py --host http://localhost:8000 --users 50
 ```
 
-### CI regression gate (GitHub Actions)
-
-The included workflow (`mlops-regression-gate` job in `.github/workflows/test.yml`)
-runs on every push to main:
-
-1. Pulls 75 SQuAD samples from HuggingFace (open data, CC BY-SA 4.0)
-2. Indexes them in ChromaDB using `all-MiniLM-L6-v2` (no API key)
-3. Runs `GoldenRunner` async — computes recall@3, recall@5, latency P95
-4. Calls `compare_or_fail()` against `examples/baselines.json` (committed)
-5. Fails the pipeline if any metric regresses more than 5%
+The `mlops-regression-gate` job in [`.github/workflows/ci.yml`](https://github.com/irfanalidv/ragfallback/blob/main/.github/workflows/ci.yml) builds a 75-question SQuAD golden set, indexes it in Chroma with `all-MiniLM-L6-v2` (no API key), runs `GoldenRunner`, and calls `compare_or_fail()` against the committed `examples/baselines.json` (5% tolerance on quality metrics; P95 latency is given a 500% allowance because shared CI runners are too noisy to gate on). Locally:
 
 ```bash
-# Run the CI gate locally
-python examples/build_golden_dataset.py   # one-time setup
-python examples/ci_regression_gate.py    # exits 0 (pass) or 1 (fail)
+pip install "ragfallback[chroma,huggingface,real-data,mlops]"
+python examples/build_golden_dataset.py   # one-time
+python examples/ci_regression_gate.py     # exit 0 = pass, 1 = regression
 ```
 
----
+</details>
 
-## FAQ
+## Research and references
 
-**Does this replace LangChain / LlamaIndex / my vector DB?**
-No. ragfallback wraps whatever retriever and vector store you already use. It adds checks and fallback paths; it doesn't add a new abstraction layer you have to migrate to.
+ragfallback implements or wraps these published methods:
 
-**Do I need an LLM API key to use this?**
-No for most of it. `ChunkQualityChecker`, `EmbeddingGuard`, `RetrievalHealthCheck`, `SmartThresholdHybridRetriever`, `ContextWindowGuard`, and `RAGEvaluator` (heuristic mode) all run locally. Only `AdaptiveRAGRetriever`, `QueryVariationsStrategy`, and `MultiHopFallbackStrategy` need an LLM, and any LangChain-compatible one works — including local Ollama models.
+- **BM25** keyword fallback in `SmartThresholdHybridRetriever` (via `rank_bm25` / LangChain `BM25Retriever`): S. Robertson and H. Zaragoza, "The Probabilistic Relevance Framework: BM25 and Beyond," *Foundations and Trends in Information Retrieval*, 3(4), 2009.
+- **nDCG** in `ragfallback.evaluation.ndcg_at_k`: K. Järvelin and J. Kekäläinen, "Cumulated gain-based evaluation of IR techniques," *ACM Transactions on Information Systems*, 20(4), 2002.
+- **RAGAS** metrics (faithfulness, answer relevancy, context precision and recall) through `RagasHook`: S. Es, J. James, L. Espinosa-Anke, and S. Schockaert, "RAGAs: Automated Evaluation of Retrieval Augmented Generation," *EACL 2024 System Demonstrations*.
+- The `lost_in_middle=True` option of `ContextWindowGuard` moves the second-most-relevant chunk to the end of the context, a mitigation for the position effect reported in N. F. Liu et al., "Lost in the Middle: How Language Models Use Long Contexts," *TACL*, 12, 2024.
 
-**Why are the example numbers different every time I run them?**
-Because they're computed live against real public datasets (SQuAD, PubMedQA, CUAD), not hardcoded. The README's "Verified numbers" section is the literal stdout of `examples/real_data_demo.py` — run it yourself to confirm.
+## When to use it
 
-**Is this production-ready?**
-It's used in the author's own RAG pipelines and has a CI regression gate that runs on every push (see badge above). It's tagged Beta on PyPI because the public API can still shift between minor versions — pin a version in production and read [CHANGELOG.md](CHANGELOG.md) before upgrading.
+- **Use it** when you already have a LangChain retriever and LLM and want guards, fallbacks, and a CI gate around them without migrating to a new framework.
+- **Use RAGAS directly** if you only need offline answer-quality scores; ragfallback's `RagasHook` calls RAGAS when it is installed, and the rest of the library is about preventing failures before evaluation.
+- **Look elsewhere** if you are not on LangChain primitives, or you need a full orchestration framework (agents, routing, document loaders); ragfallback deliberately stays a thin layer.
 
-**How is this different from RAGAS?**
-RAGAS scores answer quality. ragfallback includes a thin RAGAS-compatible hook (`ragfallback.mlops.RagasHook`) for that, but the rest of the library is about *preventing* failures before they reach evaluation — chunk quality, embedding integrity, retrieval fallback, and context-window fit. Use both; they solve different parts of the pipeline.
+<details>
+<summary>FAQ</summary>
 
----
+**Does this replace LangChain, LlamaIndex, or my vector DB?**
+No. It wraps the retriever and vector store you already use and adds checks and fallback paths.
 
-## Star history
+**Do I need an LLM API key?**
+Not for most of it. Diagnostics, `FailoverRetriever`, `SmartThresholdHybridRetriever`, `ContextWindowGuard`, `RAGEvaluator` (heuristic mode), tracking, and the MLOps gate run locally. `AdaptiveRAGRetriever`, `QueryVariationsStrategy`, and `MultiHopFallbackStrategy` need a LangChain chat model; local Ollama models work.
 
-<a href="https://star-history.com/#irfanalidv/ragfallback&Date">
-  <img src="https://api.star-history.com/svg?repos=irfanalidv/ragfallback&type=Date" alt="Star History Chart" width="100%">
-</a>
+**Why do the real-dataset example numbers vary between runs?**
+They are computed live against public datasets (SQuAD, PubMedQA, CUAD), and latency depends on hardware.
 
----
+**How stable is the API?**
+Releases follow semantic versioning. Pin a version in production and read the [CHANGELOG](https://github.com/irfanalidv/ragfallback/blob/main/CHANGELOG.md) before upgrading.
 
-## Contributing
+</details>
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). The quick version: run `pytest tests/unit/ -v` before any PR, follow Google-style docstrings, use `logging` not `print`, and update `__all__` in the subpackage `__init__.py`.
+## Roadmap
 
-## License · Changelog
+- Embedding-similarity confidence scoring (the `embedding_similarity` method of `ConfidenceScorer` currently falls back to the heuristic).
+- Built-in cross-encoder option for `ReRankerGuard`.
+- Move vector-store factories off `langchain-community` (being sunset) to the standalone integration packages.
+- Refresh the default model pricing table in `CostTracker`.
 
-MIT License — see [LICENSE](LICENSE).
+## Contributing, security, citation, license
 
-Full version history in [CHANGELOG.md](CHANGELOG.md).
-
----
-
-<div align="center">
-
-Built and maintained by **[Irfan Ali](https://github.com/irfanalidv)** — Senior AI Engineer (LLMs, RAG, agents, voice AI).
-Part of an [11-package open-source toolkit](https://pypi.org/user/irfanalidv/) for production RAG and agent systems.
-
-</div>
+- Contributions are welcome: see [CONTRIBUTING.md](https://github.com/irfanalidv/ragfallback/blob/main/CONTRIBUTING.md) and the [Code of Conduct](https://github.com/irfanalidv/ragfallback/blob/main/CODE_OF_CONDUCT.md). CI runs `ruff check`, `ruff format --check`, `mypy ragfallback`, and `pytest --cov` on Python 3.10-3.13.
+- Report vulnerabilities privately as described in [SECURITY.md](https://github.com/irfanalidv/ragfallback/blob/main/SECURITY.md).
+- If you use ragfallback in research, please cite it using [CITATION.cff](https://github.com/irfanalidv/ragfallback/blob/main/CITATION.cff) (GitHub's "Cite this repository" button reads it).
+- Release history: [CHANGELOG.md](https://github.com/irfanalidv/ragfallback/blob/main/CHANGELOG.md).
+- MIT License, see [LICENSE](https://github.com/irfanalidv/ragfallback/blob/main/LICENSE). Maintained by [Irfan Ali](https://github.com/irfanalidv).

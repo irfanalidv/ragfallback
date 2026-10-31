@@ -10,8 +10,9 @@ What it does:
   4. Compares against baselines.json (committed to repo)
   5. Exits 0 (pass) or 1 (regression detected)
 
-  compare_or_fail(..., threshold=0.05, latency_threshold=0.12) so quality
-  metrics stay at 5% while P95 tolerates shared-runner noise.
+  compare_or_fail(..., threshold=0.05, latency_threshold=5.0) so quality
+  metrics stay at 5% while P95 latency (very noisy on shared runners) is
+  effectively not gated.
 
 No LLM API keys required. Heuristic eval mode.
 All compute is local (all-MiniLM-L6-v2 embeddings, ChromaDB).
