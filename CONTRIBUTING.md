@@ -11,18 +11,23 @@ pip install -e ".[chroma,faiss,huggingface,hybrid]"
 pip install -r requirements-dev.txt
 pytest tests/unit/ -v   # must pass before any PR
 
-pre-commit install      # one-time — runs isort/black/flake8 on every commit
+pre-commit install      # one-time — runs ruff + ruff-format on every commit
 pre-commit run --all-files   # run it once manually to check your starting point
 ```
 
-`isort` + `black` + `flake8` are enforced in CI (`.github/workflows/lint.yml`)
-and block merges. `mypy` runs in the same workflow but is **advisory only**
-— a few places in the codebase use runtime duck-typing (e.g.
-`AdaptiveRAGRetriever` checking `callable(getattr(strategy, "run", None))`
-for strategies not declared on the `FallbackStrategy` base class) that
-mypy can't verify without a larger `Protocol`-based refactor. Don't add
-`# type: ignore` to silence mypy without understanding why it's flagging
-something — it might be a real bug, or it might be one of these.
+CI (`.github/workflows/ci.yml`) runs the same checks on Python 3.10–3.13 and
+blocks merges on any failure:
+
+```bash
+ruff check .
+ruff format --check .
+mypy ragfallback
+pytest tests/unit --cov=ragfallback --cov-fail-under=85
+```
+
+mypy runs with `disallow_untyped_defs`, so new public functions need full
+annotations. Don't add `# type: ignore` without a specific error code and a
+reason — `warn_unused_ignores` is on, so stale ignores fail the build.
 
 ## Adding a new module
 
