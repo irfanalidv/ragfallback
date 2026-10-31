@@ -135,23 +135,13 @@ class RagasHook:
             return self._fallback_evaluate(samples)
         try:
             from ragas import evaluate
+            from ragas import metrics as ragas_metrics
+            from ragas.metrics import context_precision, context_recall, faithfulness
 
-            try:
-                from ragas.metrics import (
-                    answer_relevancy,
-                    context_precision,
-                    context_recall,
-                    faithfulness,
-                )
-
-                answer_relevance_metric = answer_relevancy
-            except ImportError:
-                from ragas.metrics import answer_relevance as answer_relevance_metric
-                from ragas.metrics import (
-                    context_precision,
-                    context_recall,
-                    faithfulness,
-                )
+            # ragas renamed answer_relevance -> answer_relevancy; support both.
+            answer_relevance_metric = (
+                getattr(ragas_metrics, "answer_relevancy", None) or ragas_metrics.answer_relevance
+            )
 
             dataset = self._to_ragas_dataset(samples)
             result = evaluate(

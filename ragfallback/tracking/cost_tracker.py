@@ -1,9 +1,10 @@
 """Cost tracking for RAG operations."""
 
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Any, ClassVar
 
 
 @dataclass
@@ -40,54 +41,76 @@ class CostTracker:
         budget: float | None = None,
         pricing_config: dict[str, ModelPricing] | None = None,
         alert_threshold: float = 0.8,
-    ):
+    ) -> None:
         self.budget = budget
-        self.pricing_config = pricing_config or {}
+        self.pricing_config: dict[str, ModelPricing] = pricing_config or {}
         self.alert_threshold = alert_threshold
         self.total_cost = 0.0
-        self.total_tokens = {"input": 0, "output": 0}
-        self.operation_costs = {}
+        self.total_tokens: dict[str, int] = {"input": 0, "output": 0}
+        self.operation_costs: dict[str, float] = {}
         self.logger = logging.getLogger(__name__)
 
-        self._current_operation = None
-        self._current_tokens = {"input": 0, "output": 0}
+        self._current_operation: str | None = None
+        self._current_tokens: dict[str, int] = {"input": 0, "output": 0}
+        self._current_cost = 0.0
         self._last_operation_cost = 0.0
 
     @contextmanager
-    def track(self, operation: str = "default"):
-        """Context manager to track costs for an operation."""
+    def track(self, operation: str = "default") -> Iterator["CostTracker"]:
+        """Context manager that attributes tokens recorded inside it to ``operation``."""
         self._current_operation = operation
         self._current_tokens = {"input": 0, "output": 0}
+        self._current_cost = 0.0
         try:
             yield self
         finally:
-            cost = self._calculate_cost(self._current_tokens)
-            self.total_cost += cost
-            self.total_tokens["input"] += self._current_tokens["input"]
-            self.total_tokens["output"] += self._current_tokens["output"]
-            self.operation_costs[operation] = self.operation_costs.get(operation, 0.0) + cost
-            self._last_operation_cost = cost
+            self._commit(operation, self._current_tokens, self._current_cost)
             self._current_operation = None
 
-            if self.budget and self.total_cost >= self.budget * self.alert_threshold:
-                self.logger.warning(
-                    f"Budget alert: {self.total_cost:.4f} / {self.budget:.4f} "
-                    f"({self.total_cost / self.budget * 100:.1f}%)"
-                )
+    def record_tokens(self, input_tokens: int, output_tokens: int, model: str = "gpt-4") -> None:
+        """Record token usage for ``model``.
 
-    def record_tokens(self, input_tokens: int, output_tokens: int, model: str = "gpt-4"):
-        """Record token usage."""
+        Inside :meth:`track` the tokens are attributed to the active operation and
+        committed when the block exits. Outside it they are committed immediately
+        under the ``"untracked"`` operation (earlier versions silently dropped them).
+        """
+        cost = self._calculate_cost({"input": input_tokens, "output": output_tokens}, model)
         if self._current_operation:
             self._current_tokens["input"] += input_tokens
             self._current_tokens["output"] += output_tokens
+            self._current_cost += cost
+        else:
+            self._commit("untracked", {"input": input_tokens, "output": output_tokens}, cost)
+
+    def _commit(self, operation: str, tokens: dict[str, int], cost: float) -> None:
+        self.total_cost += cost
+        self.total_tokens["input"] += tokens["input"]
+        self.total_tokens["output"] += tokens["output"]
+        self.operation_costs[operation] = self.operation_costs.get(operation, 0.0) + cost
+        self._last_operation_cost = cost
+
+        if self.budget and self.total_cost >= self.budget * self.alert_threshold:
+            self.logger.warning(
+                "Budget alert: %.4f / %.4f (%.1f%%)",
+                self.total_cost,
+                self.budget,
+                self.total_cost / self.budget * 100,
+            )
+
+    def _pricing_for(self, model: str) -> ModelPricing | None:
+        """Exact match first, then the longest known prefix (``gpt-4o-mini-2024-07-18``)."""
+        table = {**self.DEFAULT_PRICING, **self.pricing_config}
+        if model in table:
+            return table[model]
+        prefixes = [k for k in table if model.startswith(k)]
+        return table[max(prefixes, key=len)] if prefixes else None
 
     def _calculate_cost(self, tokens: dict[str, int], model: str = "gpt-4") -> float:
-        """Calculate cost from tokens."""
-        pricing = self.pricing_config.get(model) or self.DEFAULT_PRICING.get(model)
-        if not pricing:
-            self.logger.warning("no pricing for model %r, using default", model)
-            pricing = self.DEFAULT_PRICING.get("gpt-4")
-
+        """Calculate USD cost of ``tokens`` at ``model``'s per-1M-token price."""
+        pricing = self._pricing_for(model)
+        if pricing is None:
+            self.logger.warning("no pricing for model %r, using gpt-4 pricing", model)
+            pricing = self.DEFAULT_PRICING["gpt-4"]
         input_cost = (tokens["input"] / 1_000_000) * pricing.input_cost_per_1M
         output_cost = (tokens["output"] / 1_000_000) * pricing.output_cost_per_1M
         return input_cost + output_cost
@@ -102,7 +125,7 @@ class CostTracker:
             return False
         return self.total_cost >= self.budget
 
-    def get_report(self) -> dict:
+    def get_report(self) -> dict[str, Any]:
         """Get detailed cost report."""
         return {
             "total_cost": self.total_cost,

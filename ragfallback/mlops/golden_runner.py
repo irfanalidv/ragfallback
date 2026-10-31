@@ -15,6 +15,7 @@ from typing import Any
 
 import numpy as np
 
+from ragfallback._compat import invoke_retriever
 from ragfallback.core.adaptive_retriever import AdaptiveRAGRetriever, QueryResult
 from ragfallback.evaluation import recall_at_k
 from ragfallback.mlops.ragas_hook import RagasHook, RagasReport
@@ -77,10 +78,7 @@ class GoldenRunner:
         r = self.retriever.vector_store.as_retriever(search_kwargs={"k": k})
         if self._cache_monitor is not None:
             r = self._cache_monitor.wrap_retriever(r, k=k)
-        invoke = getattr(r, "invoke", None)
-        if invoke is not None:
-            return list(invoke(query) or [])
-        return list(r.get_relevant_documents(query))
+        return invoke_retriever(r, query)
 
     async def _aretrieve_docs(self, query: str, k: int = 5) -> list[Any]:
         """Async fetch of top-``k`` documents."""

@@ -243,11 +243,7 @@ class MultiHopFallbackStrategy(FallbackStrategy):
                 type(parsed).__name__,
             )
         except json.JSONDecodeError:
-            text = (
-                response.content  # type: ignore[possibly-undefined]
-                if hasattr(response, "content")  # type: ignore[possibly-undefined]
-                else str(response)  # type: ignore[possibly-undefined]
-            )
+            # ``text`` is bound: json.loads() is the only call that raises this.
             sub_qs = _extract_list_from_text(text)
             if sub_qs:
                 return sub_qs[: self.max_hops]

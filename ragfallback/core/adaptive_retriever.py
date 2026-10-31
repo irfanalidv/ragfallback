@@ -16,6 +16,7 @@ from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.vectorstores import VectorStore
 
+from ragfallback._compat import invoke_retriever
 from ragfallback.strategies.base import FallbackStrategy
 from ragfallback.strategies.query_variations import QueryVariationsStrategy
 from ragfallback.tracking.cost_tracker import CostTracker
@@ -34,7 +35,7 @@ class QueryResult:
     cost: float
     intermediate_steps: list[dict] | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"QueryResult(answer='{self.answer[:50]}...', "
             f"confidence={self.confidence:.2%}, attempts={self.attempts}, "
@@ -70,7 +71,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         metrics_collector: MetricsCollector | None = None,
         enable_logging: bool = True,
         answer_prompt_template: str | None = None,
-    ):
+    ) -> None:
         self.vector_store = vector_store
         self.llm = llm
         self.embedding_model = embedding_model
@@ -127,14 +128,15 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             # Strategies that expose run() drive their own retrieval-answer loop
             # (e.g. MultiHopFallbackStrategy). Delegate fully rather than calling
             # generate_queries(), which would bypass the hop chain.
-            if callable(getattr(strategy, "run", None)):
+            run_pipeline = getattr(strategy, "run", None)
+            if callable(run_pipeline):
                 if self.logger:
                     self.logger.debug(
                         "strategy %s has run() — delegating to multi-hop pipeline",
                         strategy.__class__.__name__,
                     )
                 retriever = self.vector_store.as_retriever()
-                hop_result = strategy.run(
+                hop_result = run_pipeline(
                     question=question,
                     retriever=retriever,
                     llm=self.llm,
@@ -326,7 +328,8 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             attempt_num = strategy_idx + 1
 
             # Delegate multi-hop strategies to thread pool (they have no async API)
-            if callable(getattr(strategy, "run", None)):
+            run_pipeline = getattr(strategy, "run", None)
+            if callable(run_pipeline):
                 if self.logger:
                     self.logger.debug(
                         "strategy %s has run() — delegating to thread pool",
@@ -336,7 +339,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                 hop_result = await loop.run_in_executor(
                     None,
                     functools.partial(
-                        strategy.run,
+                        run_pipeline,
                         question=question,
                         retriever=retriever,
                         llm=self.llm,
@@ -506,8 +509,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                 return list(result or [])
             # Fall back: run sync invoke in executor
             loop = asyncio.get_running_loop()
-            invoke = getattr(retriever, "invoke", None) or retriever.get_relevant_documents
-            return list(await loop.run_in_executor(None, functools.partial(invoke, query)) or [])
+            return await loop.run_in_executor(
+                None, functools.partial(invoke_retriever, retriever, query)
+            )
         except Exception as exc:
             if self.logger:
                 self.logger.error("async retrieve error: %s", exc)
@@ -575,8 +579,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         try:
             search_kwargs = self._build_search_kwargs(context)
             retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
-            invoke = getattr(retriever, "invoke", None)
-            return invoke(query) if invoke is not None else retriever.get_relevant_documents(query)
+            return invoke_retriever(retriever, query)
         except Exception as e:
             if self.logger:
                 self.logger.error("error retrieving documents: %s", e)

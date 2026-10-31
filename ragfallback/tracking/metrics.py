@@ -2,6 +2,7 @@
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -23,7 +24,7 @@ class MetricsCollector:
     Tracks success rates, confidence scores, costs, and latencies.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.metrics: list[QueryMetrics] = []
         self.logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class MetricsCollector:
         cost: float,
         latency_ms: float | None = None,
         strategy_used: str = "unknown",
-    ):
+    ) -> None:
         """Record a successful query."""
         metric = QueryMetrics(
             success=True,
@@ -52,7 +53,7 @@ class MetricsCollector:
         cost: float,
         latency_ms: float | None = None,
         strategy_used: str = "unknown",
-    ):
+    ) -> None:
         """Record a failed query."""
         metric = QueryMetrics(
             success=False,
@@ -64,7 +65,7 @@ class MetricsCollector:
         )
         self.metrics.append(metric)
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """Get aggregated statistics."""
         if not self.metrics:
             return {
@@ -100,6 +101,6 @@ class MetricsCollector:
             "total_cost": total_cost,
         }
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset all metrics."""
         self.metrics = []

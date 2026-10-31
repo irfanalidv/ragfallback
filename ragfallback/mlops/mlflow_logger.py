@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ragfallback.mlops.golden_runner import GoldenReport
@@ -20,7 +20,7 @@ class MLflowLogger:
     def __init__(self, tracking_uri: str = "file:./mlruns") -> None:
         """Configure tracking URI or become a no-op if MLflow is missing."""
         self._mlflow_available = False
-        self._mlflow = None  # type: ignore[assignment]
+        self._mlflow: Any = None
         try:
             import mlflow
 

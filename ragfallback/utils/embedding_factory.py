@@ -23,7 +23,9 @@ def create_open_source_embeddings(model_name: str = "all-MiniLM-L6-v2") -> Embed
         from langchain_huggingface import HuggingFaceEmbeddings
     except ImportError:
         try:
-            from langchain_community.embeddings import HuggingFaceEmbeddings
+            from langchain_community.embeddings import (  # type: ignore[assignment, unused-ignore]
+                HuggingFaceEmbeddings,
+            )
         except ImportError as e:
             raise ImportError(
                 "HuggingFace embeddings not installed. "

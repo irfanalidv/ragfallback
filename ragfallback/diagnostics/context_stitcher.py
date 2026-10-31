@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
 from langchain_core.documents import Document
 
 
-def _parse_int(val: object | None) -> int | None:
+def _parse_int(val: Any) -> int | None:
     if val is None:
         return None
     try:

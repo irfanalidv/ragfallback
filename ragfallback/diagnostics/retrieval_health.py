@@ -10,14 +10,11 @@ from typing import Any
 
 from langchain_core.vectorstores import VectorStore
 
+from ragfallback._compat import invoke_retriever
+
 
 def _retrieve_docs(vector_store: VectorStore, query: str, k: int) -> list[Any]:
-    r = vector_store.as_retriever(search_kwargs={"k": k})
-    invoke = getattr(r, "invoke", None)
-    if invoke:
-        out = invoke(query)
-        return out if isinstance(out, list) else []
-    return r.get_relevant_documents(query)
+    return invoke_retriever(vector_store.as_retriever(search_kwargs={"k": k}), query)
 
 
 def _doc_key(doc: Any) -> str:

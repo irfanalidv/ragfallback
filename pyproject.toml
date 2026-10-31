@@ -150,3 +150,11 @@ known-first-party = ["ragfallback"]
 "examples/*.py" = ["E402", "E501"]
 "tests/integration/*.py" = ["E402", "E501"]
 "verify_library.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
