@@ -19,6 +19,8 @@ from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 from pydantic import ConfigDict
 
+from ragfallback._compat import invoke_retriever
+
 logger = logging.getLogger(__name__)
 
 ScoreMode = Literal["distance", "similarity", "relative_similarity"]
@@ -130,13 +132,8 @@ class SmartThresholdHybridRetriever(BaseRetriever):
 
         if self.bm25_retriever is not None:
             try:
-                invoke = getattr(self.bm25_retriever, "invoke", None)
-                if invoke:
-                    bm_docs = invoke(query)
-                else:
-                    bm_docs = self.bm25_retriever.get_relevant_documents(query)
-                if isinstance(bm_docs, list):
-                    return _annotate(bm_docs[: self.final_k], "bm25_fallback")
+                bm_docs = invoke_retriever(self.bm25_retriever, query)
+                return _annotate(bm_docs[: self.final_k], "bm25_fallback")
             except Exception as e:
                 logger.warning("BM25 fallback failed: %s", e)
 

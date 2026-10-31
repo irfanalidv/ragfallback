@@ -309,3 +309,13 @@ def test_chunk_checker_flags_and_auto_fix() -> None:
     fixed = checker.auto_fix(chunks, target_chars=40, overlap_chars=5)
     assert all(len(t) <= 60 for t in fixed)
     assert not ChunkQualityChecker().check([]).ok
+
+
+def test_auto_fix_folds_trailing_fragment_and_prefers_sentence_cuts() -> None:
+    from ragfallback.diagnostics.chunking import _merge_small_chunks, _split_large_text
+
+    assert _merge_small_chunks(["a" * 100, "tiny"], min_chars=50) == ["a" * 100 + " tiny"]
+    text = "First sentence is here. Second sentence follows it. Third one ends the text."
+    parts = _split_large_text(text, target=40, overlap=0)
+    assert parts[0] == "First sentence is here."
+    assert "".join(parts).replace(" ", "") == text.replace(" ", "")

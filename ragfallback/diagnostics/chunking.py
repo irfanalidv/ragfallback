@@ -220,7 +220,11 @@ def _merge_small_chunks(texts: list[str], min_chars: int) -> list[str]:
         else:
             result.append(buf)
             buf = t
-    result.append(buf)
+    if len(buf) < min_chars and result:
+        # A short trailing fragment has no right-hand neighbour; fold it into the left one.
+        result[-1] = (result[-1] + " " + buf).strip()
+    else:
+        result.append(buf)
     return result
 
 
@@ -232,8 +236,13 @@ def _split_large_text(text: str, target: int, overlap: int) -> list[str]:
     n = len(text)
     while start < n:
         end = min(n, start + target)
-        parts.append(text[start:end])
+        if end < n:
+            # Prefer to cut just after a sentence end in the back half of the window.
+            cut = max(text.rfind(p, start + target // 2, end) for p in (". ", "? ", "! ", "\n"))
+            if cut != -1:
+                end = cut + 1
+        parts.append(text[start:end].strip())
         if end >= n:
             break
-        start = max(0, end - overlap)
+        start = max(start + 1, end - overlap)
     return parts

@@ -102,7 +102,7 @@ def run_all_examples():
         "financial_risk_analysis.py": "requires ragfallback[real-data] + LLM",
     }
     # Internal helpers / non-runnable files (silently skipped, no output line).
-    SILENT_SKIP = {"_kb_common.py", "__init__.py"}
+    SILENT_SKIP = {"_kb_common.py", "_offline.py", "__init__.py"}
 
     results = []
     for example_file in example_files:
