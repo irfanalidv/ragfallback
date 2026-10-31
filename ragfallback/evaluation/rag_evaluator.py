@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import math
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any
 
 from ragfallback.tracking.metrics import MetricsCollector
 
 
-def recall_at_k(retrieved_ids: Sequence[str], relevant_ids: Set[str], k: int) -> float:
+def recall_at_k(retrieved_ids: Sequence[str], relevant_ids: set[str], k: int) -> float:
     """Fraction of distinct relevant documents that appear in the first ``k`` retrieved IDs."""
     if not relevant_ids:
         return 0.0
@@ -28,9 +29,7 @@ def dcg_at_k(relevance_scores: Sequence[float], k: int) -> float:
     return dcg
 
 
-def ndcg_at_k(
-    relevance_scores: Sequence[float], ideal_scores: Sequence[float], k: int
-) -> float:
+def ndcg_at_k(relevance_scores: Sequence[float], ideal_scores: Sequence[float], k: int) -> float:
     dcg = dcg_at_k(relevance_scores, k)
     idcg = dcg_at_k(sorted(ideal_scores, reverse=True), k)
     if idcg <= 0:
@@ -40,11 +39,11 @@ def ndcg_at_k(
 
 @dataclass
 class RAGEvalSummary:
-    retrieval: Dict[str, float] = field(default_factory=dict)
-    generation: Dict[str, float] = field(default_factory=dict)
-    notes: List[str] = field(default_factory=list)
+    retrieval: dict[str, float] = field(default_factory=dict)
+    generation: dict[str, float] = field(default_factory=dict)
+    notes: list[str] = field(default_factory=list)
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "retrieval": self.retrieval,
             "generation": self.generation,
@@ -52,7 +51,7 @@ class RAGEvalSummary:
         }
 
 
-def _tokenize_words(text: str) -> Set[str]:
+def _tokenize_words(text: str) -> set[str]:
     return set(re.findall(r"\b\w+\b", (text or "").lower()))
 
 
@@ -111,10 +110,10 @@ class RAGScore:
     context_precision: float = 0.0
     faithfulness_score: float = 0.0
     answer_relevance: float = 0.0
-    recall_at_k: Optional[float] = None
+    recall_at_k: float | None = None
     num_contexts: int = 0
     used_llm_judge: bool = False
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def overall_score(self) -> float:
@@ -165,7 +164,7 @@ class SimpleRAGReport:
     context_precision: float
     answer_grounded_overlap: float
     overall: float
-    notes: List[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
         return (
@@ -183,21 +182,21 @@ class RAGEvaluator:
 
     def __init__(
         self,
-        metrics_collector: Optional[MetricsCollector] = None,
+        metrics_collector: MetricsCollector | None = None,
         *,
-        llm: Optional[Any] = None,
+        llm: Any | None = None,
     ):
         self.metrics_collector = metrics_collector
         self._llm = llm
-        self._eval_history: List[RAGEvalSummary] = []
+        self._eval_history: list[RAGEvalSummary] = []
 
     def evaluate_retrieval_case(
         self,
         retrieved_ids: Sequence[str],
-        relevant_ids: Set[str],
+        relevant_ids: set[str],
         k_values: Sequence[int] = (1, 3, 5, 10),
-    ) -> Dict[str, float]:
-        out: Dict[str, float] = {}
+    ) -> dict[str, float]:
+        out: dict[str, float] = {}
         for k in k_values:
             out[f"recall@{k}"] = recall_at_k(retrieved_ids, relevant_ids, k)
         return out
@@ -206,7 +205,7 @@ class RAGEvaluator:
         self,
         relevance_per_rank: Sequence[float],
         k: int = 10,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """relevance_per_rank[i] = relevance of item at rank i (e.g. 1 or 0)."""
         ideal = sorted(relevance_per_rank, reverse=True)
         return {
@@ -218,8 +217,8 @@ class RAGEvaluator:
         self,
         answer: str,
         context: str,
-        judge: Optional[Any] = None,
-    ) -> Optional[float]:
+        judge: Any | None = None,
+    ) -> float | None:
         """
         Placeholder for LLM-as-judge faithfulness in [0,1]. Pass a callable
         ``judge(answer, context) -> float`` when ready.
@@ -238,27 +237,25 @@ class RAGEvaluator:
         """Fraction of retrieved items that are relevant (precision over list)."""
         if not retrieved_relevant_flags:
             return 0.0
-        return sum(1 for x in retrieved_relevant_flags if x) / len(
-            retrieved_relevant_flags
-        )
+        return sum(1 for x in retrieved_relevant_flags if x) / len(retrieved_relevant_flags)
 
     def record_summary(self, summary: RAGEvalSummary) -> None:
         self._eval_history.append(summary)
 
-    def get_history(self) -> List[RAGEvalSummary]:
+    def get_history(self) -> list[RAGEvalSummary]:
         return list(self._eval_history)
 
     def evaluate_heuristic(
         self,
         answer: str,
         contexts: Sequence[Any],
-        ground_truth: Optional[str] = None,
+        ground_truth: str | None = None,
     ) -> SimpleRAGReport:
         """
         Heuristic scoring without an LLM: token overlap answer↔context and optional answer↔gold.
         Use for regression smoke tests; pair with :meth:`faithfulness_score` + judge for quality.
         """
-        notes: List[str] = []
+        notes: list[str] = []
         ctx_texts = [(getattr(c, "page_content", str(c)) or "") for c in contexts]
         blob = "\n".join(ctx_texts).lower()
         ans = (answer or "").lower()
@@ -287,21 +284,19 @@ class RAGEvaluator:
             notes=notes,
         )
 
-    def _context_precision_answer(self, answer: str, contexts: List[str]) -> float:
+    def _context_precision_answer(self, answer: str, contexts: list[str]) -> float:
         if not contexts:
             return 0.0
         hit = sum(1 for ctx in contexts if _jaccard(answer, ctx) > 0.15)
         return hit / len(contexts)
 
-    def _heuristic_faithfulness(self, answer: str, contexts: List[str]) -> float:
+    def _heuristic_faithfulness(self, answer: str, contexts: list[str]) -> float:
         if not contexts:
             return 0.0
         combined = " ".join(contexts)
         return min(_jaccard(answer, combined) * 2.0, 1.0)
 
-    def _recall_ground_truth_in_contexts(
-        self, ground_truth: str, contexts: List[str]
-    ) -> float:
+    def _recall_ground_truth_in_contexts(self, ground_truth: str, contexts: list[str]) -> float:
         if not contexts or not ground_truth.strip():
             return 0.0
         gt = _tokenize_words(ground_truth)
@@ -318,13 +313,13 @@ class RAGEvaluator:
         question: str,
         answer: str,
         contexts: Sequence[Any],
-        ground_truth: Optional[str] = None,
+        ground_truth: str | None = None,
     ) -> RAGScore:
         """
         Score one RAG turn. ``contexts`` may be strings or objects with ``page_content``.
         With ``llm`` passed to the constructor, uses short 0–10 judge prompts; else heuristics.
         """
-        warnings: List[str] = []
+        warnings: list[str] = []
         ctx_list = [
             (c if isinstance(c, str) else (getattr(c, "page_content", str(c)) or ""))
             for c in contexts
@@ -338,22 +333,16 @@ class RAGEvaluator:
             faith = _parse_llm_score_0_10(
                 _invoke_llm_text(
                     self._llm,
-                    _FAITH_PROMPT.format(
-                        question=question, answer=answer, context=comb
-                    ),
+                    _FAITH_PROMPT.format(question=question, answer=answer, context=comb),
                 )
             )
             rel = _parse_llm_score_0_10(
-                _invoke_llm_text(
-                    self._llm, _REL_PROMPT.format(question=question, answer=answer)
-                )
+                _invoke_llm_text(self._llm, _REL_PROMPT.format(question=question, answer=answer))
             )
         else:
             faith = self._heuristic_faithfulness(answer, ctx_list)
             rel = _jaccard(question, answer)
-            warnings.append(
-                "No judge LLM — using heuristic faithfulness and relevance."
-            )
+            warnings.append("No judge LLM — using heuristic faithfulness and relevance.")
 
         recall = None
         if ground_truth:
@@ -376,9 +365,9 @@ class RAGEvaluator:
             warnings=warnings,
         )
 
-    def evaluate_batch(self, samples: Sequence[Dict[str, Any]]) -> List[RAGScore]:
+    def evaluate_batch(self, samples: Sequence[dict[str, Any]]) -> list[RAGScore]:
         """Each dict: question, answer, contexts, optional ground_truth."""
-        out: List[RAGScore] = []
+        out: list[RAGScore] = []
         for s in samples:
             out.append(
                 self.evaluate(
@@ -398,5 +387,5 @@ class RAGEvaluator:
         pr = sum(1 for s in scores if s.passed) / n
         return (
             f"batch n={n} pass_rate={pr:.1%} avg_overall={avg_o:.2%} "
-            f"avg_faith={sum(s.faithfulness_score for s in scores)/n:.2%}"
+            f"avg_faith={sum(s.faithfulness_score for s in scores) / n:.2%}"
         )

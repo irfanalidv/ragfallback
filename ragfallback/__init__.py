@@ -19,8 +19,8 @@ from ragfallback.tracking.metrics import MetricsCollector
 
 __all__ = [
     "AdaptiveRAGRetriever",
-    "QueryResult",
     "CacheMonitor",
     "CostTracker",
     "MetricsCollector",
+    "QueryResult",
 ]

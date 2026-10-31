@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from langchain_core.embeddings import Embeddings
 
@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 class EmbeddingValidatorReport:
     ok: bool
     guard: EmbeddingGuardReport
-    store_reported_dim: Optional[int]
+    store_reported_dim: int | None
     message: str
 
 
-def infer_vectorstore_embedding_dim(vectorstore: Any) -> Optional[int]:
+def infer_vectorstore_embedding_dim(vectorstore: Any) -> int | None:
     """
     Best-effort read of collection/index embedding size (Chroma metadata, etc.).
     Many stores do not expose this — returns None then rely on :class:`EmbeddingGuard` only.
@@ -61,7 +61,7 @@ class EmbeddingValidator:
     Re-initializing the correct embedder is left to application code (factory swap).
     """
 
-    def __init__(self, embedding_guard: Optional[EmbeddingGuard] = None):
+    def __init__(self, embedding_guard: EmbeddingGuard | None = None):
         self._guard = embedding_guard or EmbeddingGuard()
 
     def validate(

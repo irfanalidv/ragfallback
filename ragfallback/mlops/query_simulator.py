@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence
 
 
 @dataclass
@@ -19,7 +19,7 @@ class SimQuery:
 class QuerySimulator:
     """Produce short, long, ambiguous, and out-of-domain query variants."""
 
-    _DEFAULT_OOD: List[str] = [
+    _DEFAULT_OOD: list[str] = [
         "What is the weather in Tokyo?",
         "How do I bake sourdough bread?",
         "What is the GDP of Norway?",
@@ -47,9 +47,9 @@ class QuerySimulator:
         }
     )
 
-    def __init__(self, ood_topics: Optional[List[str]] = None) -> None:
+    def __init__(self, ood_topics: list[str] | None = None) -> None:
         """Use ``ood_topics`` for out-of-domain replacement or built-in defaults."""
-        self._ood_topics: List[str] = (
+        self._ood_topics: list[str] = (
             list(ood_topics) if ood_topics is not None else list(self._DEFAULT_OOD)
         )
 
@@ -90,10 +90,10 @@ class QuerySimulator:
     def simulate(
         self,
         queries: Sequence[str],
-        mix: Optional[Dict[str, float]] = None,
-    ) -> List[SimQuery]:
+        mix: dict[str, float] | None = None,
+    ) -> list[SimQuery]:
         """Assign each query a random transform type weighted by ``mix``."""
-        default_mix: Dict[str, float] = {
+        default_mix: dict[str, float] = {
             "short_keyword": 0.25,
             "long_nl": 0.25,
             "ambiguous": 0.25,
@@ -104,25 +104,21 @@ class QuerySimulator:
         weights = [float(m[t]) for t in types]
         total = sum(weights)
         if abs(total - 1.0) > 0.01:
-            raise ValueError(
-                "mix weights must sum to 1.0 within tolerance 0.01, got {}".format(
-                    total
-                )
-            )
+            raise ValueError(f"mix weights must sum to 1.0 within tolerance 0.01, got {total}")
         handlers = {
             "short_keyword": self._short_keyword,
             "long_nl": self._long_nl,
             "ambiguous": self._ambiguous,
             "out_of_domain": self._out_of_domain,
         }
-        out: List[SimQuery] = []
+        out: list[SimQuery] = []
         for q in queries:
             kind = random.choices(types, weights=weights, k=1)[0]
             fn = handlers[kind]
             out.append(SimQuery(original=q, transformed=fn(q), query_type=kind))
         return out
 
-    def simulate_unhappy_paths(self, queries: Sequence[str]) -> List[SimQuery]:
+    def simulate_unhappy_paths(self, queries: Sequence[str]) -> list[SimQuery]:
         """Emit all four transform types for every input query."""
         order = ("short_keyword", "long_nl", "ambiguous", "out_of_domain")
         handlers = {
@@ -131,7 +127,7 @@ class QuerySimulator:
             "ambiguous": self._ambiguous,
             "out_of_domain": self._out_of_domain,
         }
-        out: List[SimQuery] = []
+        out: list[SimQuery] = []
         for q in queries:
             for kind in order:
                 out.append(

@@ -67,9 +67,7 @@ def _run_demo() -> int:
             collection_name="ragfallback_kb_demo",
         )
     except ImportError as e:
-        print(
-            f"{e}\nInstall: pip install chromadb sentence-transformers", file=sys.stderr
-        )
+        print(f"{e}\nInstall: pip install chromadb sentence-transformers", file=sys.stderr)
         return 1
 
     print("Chroma collection ready (embeddings computed from real file contents).\n")
@@ -121,11 +119,7 @@ def _run_demo() -> int:
         )
     except Exception as e:
         err = str(e).lower()
-        if (
-            "connection refused" in err
-            or "11434" in err
-            or "failed to establish" in err
-        ):
+        if "connection refused" in err or "11434" in err or "failed to establish" in err:
             print(
                 "\n(Ollama not reachable — retrieval-only preview, no paid API keys.)\n"
                 "For full adaptive RAG: install https://ollama.ai and run: ollama pull llama3\n"
@@ -164,9 +158,7 @@ def _run_demo() -> int:
 def main() -> int:
     import logging
 
-    logging.getLogger("ragfallback.strategies.query_variations").setLevel(
-        logging.CRITICAL
-    )
+    logging.getLogger("ragfallback.strategies.query_variations").setLevel(logging.CRITICAL)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         return _run_demo()

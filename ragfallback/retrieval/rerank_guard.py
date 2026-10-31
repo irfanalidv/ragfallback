@@ -6,7 +6,7 @@ Production systems often add a second-stage reranker. Hook your model here later
 
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Sequence
+from collections.abc import Callable, Sequence
 
 from langchain_core.documents import Document
 
@@ -20,13 +20,13 @@ class ReRankerGuard:
 
     def __init__(
         self,
-        rerank_fn: Optional[Callable[[str, List[Document]], List[Document]]] = None,
-        top_n: Optional[int] = None,
+        rerank_fn: Callable[[str, list[Document]], list[Document]] | None = None,
+        top_n: int | None = None,
     ):
         self.rerank_fn = rerank_fn
         self.top_n = top_n
 
-    def apply(self, query: str, documents: Sequence[Document]) -> List[Document]:
+    def apply(self, query: str, documents: Sequence[Document]) -> list[Document]:
         docs = list(documents)
         if self.rerank_fn is not None:
             docs = self.rerank_fn(query, docs)

@@ -3,7 +3,6 @@
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 
 @dataclass
@@ -37,8 +36,8 @@ class CostTracker:
 
     def __init__(
         self,
-        budget: Optional[float] = None,
-        pricing_config: Optional[Dict[str, ModelPricing]] = None,
+        budget: float | None = None,
+        pricing_config: dict[str, ModelPricing] | None = None,
         alert_threshold: float = 0.8,
     ):
         self.budget = budget
@@ -65,9 +64,7 @@ class CostTracker:
             self.total_cost += cost
             self.total_tokens["input"] += self._current_tokens["input"]
             self.total_tokens["output"] += self._current_tokens["output"]
-            self.operation_costs[operation] = (
-                self.operation_costs.get(operation, 0.0) + cost
-            )
+            self.operation_costs[operation] = self.operation_costs.get(operation, 0.0) + cost
             self._last_operation_cost = cost
             self._current_operation = None
 
@@ -77,15 +74,13 @@ class CostTracker:
                     f"({self.total_cost / self.budget * 100:.1f}%)"
                 )
 
-    def record_tokens(
-        self, input_tokens: int, output_tokens: int, model: str = "gpt-4"
-    ):
+    def record_tokens(self, input_tokens: int, output_tokens: int, model: str = "gpt-4"):
         """Record token usage."""
         if self._current_operation:
             self._current_tokens["input"] += input_tokens
             self._current_tokens["output"] += output_tokens
 
-    def _calculate_cost(self, tokens: Dict[str, int], model: str = "gpt-4") -> float:
+    def _calculate_cost(self, tokens: dict[str, int], model: str = "gpt-4") -> float:
         """Calculate cost from tokens."""
         pricing = self.pricing_config.get(model) or self.DEFAULT_PRICING.get(model)
         if not pricing:
@@ -106,15 +101,13 @@ class CostTracker:
             return False
         return self.total_cost >= self.budget
 
-    def get_report(self) -> Dict:
+    def get_report(self) -> dict:
         """Get detailed cost report."""
         return {
             "total_cost": self.total_cost,
             "total_tokens": self.total_tokens,
             "breakdown": self.operation_costs,
-            "budget_remaining": (
-                (self.budget - self.total_cost) if self.budget else None
-            ),
+            "budget_remaining": ((self.budget - self.total_cost) if self.budget else None),
             "budget_usage_percent": (
                 (self.total_cost / self.budget * 100) if self.budget else None
             ),

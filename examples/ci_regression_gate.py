@@ -138,7 +138,7 @@ async def run_gate() -> int:
     print(f"  {'context_precision':<28} {report.ragas.context_precision:>8.3f}")
     print(f"  {'latency_p95_ms':<28} {report.latency_p95_ms:>8.1f}")
     print(f"  {'fallback_rate':<28} {report.fallback_rate:>8.1%}")
-    print(f"  {'ragas_fallback_mode':<28} {str(report.ragas.fallback_mode):>8}")
+    print(f"  {'ragas_fallback_mode':<28} {report.ragas.fallback_mode!s:>8}")
 
     # ── Regression gate ──
     from ragfallback.mlops import BaselineRegistry, RegressionError
@@ -155,12 +155,8 @@ async def run_gate() -> int:
 
     # Compare against committed baseline
     baseline = registry.get(dataset_name)
-    print(
-        f"  Comparing against baseline (recorded: {baseline.get('recorded_at', 'unknown')})"
-    )
-    print(
-        "  Threshold: 5% quality metrics; latency not gated (CI runners too noisy) → FAIL"
-    )
+    print(f"  Comparing against baseline (recorded: {baseline.get('recorded_at', 'unknown')})")
+    print("  Threshold: 5% quality metrics; latency not gated (CI runners too noisy) → FAIL")
 
     try:
         registry.compare_or_fail(

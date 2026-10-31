@@ -137,9 +137,7 @@ def test_run_returns_multi_hop_result() -> None:
         ["TechCorp acquired Acme in 2022."],
         ["TechCorp annual revenue was $5 billion."],
     )
-    result = strategy.run(
-        "Who acquired Acme and what was their revenue?", retriever, llm
-    )
+    result = strategy.run("Who acquired Acme and what was their revenue?", retriever, llm)
 
     assert isinstance(result, MultiHopResult)
     assert result.total_hops == 2
@@ -243,9 +241,7 @@ def test_summary_failed() -> None:
 
 def test_summary_truncates_long_answer() -> None:
     long_answer = "a" * 200
-    result = MultiHopResult(
-        final_answer=long_answer, hops=[], total_hops=1, success=True
-    )
+    result = MultiHopResult(final_answer=long_answer, hops=[], total_hops=1, success=True)
     assert "…" in result.summary()
 
 

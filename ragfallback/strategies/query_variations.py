@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import HumanMessage
@@ -35,7 +35,7 @@ Do not include any explanation or markdown formatting."""
         self,
         num_variations: int = 2,
         include_original: bool = True,
-        variation_prompt_template: Optional[str] = None,
+        variation_prompt_template: str | None = None,
     ):
         self.num_variations = num_variations
         self.include_original = include_original
@@ -45,10 +45,10 @@ Do not include any explanation or markdown formatting."""
     def generate_queries(
         self,
         original_query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         attempt: int,
         llm: BaseLanguageModel,
-    ) -> List[str]:
+    ) -> list[str]:
         """Return queries to try for this attempt.
 
         On attempt 1, prepends the original query when include_original is set.
@@ -74,10 +74,10 @@ Do not include any explanation or markdown formatting."""
     def _generate_variations(
         self,
         original_query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         num_variations: int,
         llm: BaseLanguageModel,
-    ) -> List[str]:
+    ) -> list[str]:
         """Call the LLM and parse its JSON array of rewritten queries."""
         context_str = ""
         if context:
@@ -89,18 +89,13 @@ Do not include any explanation or markdown formatting."""
 
         try:
             response = llm.invoke([HumanMessage(content=prompt)])
-            response_text = (
-                response.content if hasattr(response, "content") else str(response)
-            )
+            response_text = response.content if hasattr(response, "content") else str(response)
 
             variations = json.loads(response_text)
             if isinstance(variations, list):
                 return variations[:num_variations]
-            else:
-                self.logger.warning(
-                    "expected list from LLM, got %s", type(variations).__name__
-                )
-                return []
+            self.logger.warning("expected list from LLM, got %s", type(variations).__name__)
+            return []
         except json.JSONDecodeError as e:
             self.logger.warning(
                 "LLM response was not valid JSON, falling back to text parse: %s", e
@@ -110,7 +105,7 @@ Do not include any explanation or markdown formatting."""
             self.logger.warning("query variation generation failed: %s", e)
             return []
 
-    def _extract_variations_from_text(self, text: str) -> List[str]:
+    def _extract_variations_from_text(self, text: str) -> list[str]:
         """Extract variations from text if JSON parsing fails."""
         import re
 
@@ -123,6 +118,4 @@ Do not include any explanation or markdown formatting."""
                 pass
 
         lines = [line.strip().strip('"').strip("'") for line in text.split("\n")]
-        return [line for line in lines if line and len(line) > 10][
-            : self.num_variations
-        ]
+        return [line for line in lines if line and len(line) > 10][: self.num_variations]

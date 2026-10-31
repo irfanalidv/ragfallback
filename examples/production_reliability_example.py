@@ -50,8 +50,7 @@ def main() -> None:
     print(f"auto_fix: {len(raw)} -> {len(fixed)} strings")
 
     docs = [
-        Document(page_content=t, metadata={"source": f"chunk_{i}"})
-        for i, t in enumerate(fixed)
+        Document(page_content=t, metadata={"source": f"chunk_{i}"}) for i, t in enumerate(fixed)
     ]
 
     print("\n=== 2. EmbeddingGuard (live model) ===")
@@ -83,9 +82,7 @@ def main() -> None:
     print("\n=== 5. ContextWindowGuard ===")
     cwg = ContextWindowGuard(max_context_tokens=2000)
     retrieved = vs.similarity_search("Python programming", k=3)
-    packed, ctx_rep = cwg.select(
-        "Python programming", retrieved, emb, lost_in_middle=True
-    )
+    packed, ctx_rep = cwg.select("Python programming", retrieved, emb, lost_in_middle=True)
     print(ctx_rep.summary(), f"selected={len(packed)}")
 
     print("\n=== 6. RAGEvaluator ===")

@@ -106,9 +106,7 @@ def main() -> None:
     )
     results = vs_clean.similarity_search("What are Python lists?", k=2)
     print(f"  Inserted {len(clean_docs)} docs. Retrieved {len(results)} result(s). ✓")
-    print(
-        f"\n  Metadata sanitized: {len(clean_docs)} document(s) ready for any vector store."
-    )
+    print(f"\n  Metadata sanitized: {len(clean_docs)} document(s) ready for any vector store.")
 
     print("\nKey transformations applied by sanitize_documents():")
     print('  list / tuple  → JSON string  (e.g. \'["python", "lists"]\')')

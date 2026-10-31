@@ -17,10 +17,7 @@ import os
 import sys
 
 _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if (
-    os.path.isdir(os.path.join(_repo_root, "ragfallback"))
-    and _repo_root not in sys.path
-):
+if os.path.isdir(os.path.join(_repo_root, "ragfallback")) and _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
 _examples_dir = os.path.dirname(os.path.abspath(__file__))
@@ -71,9 +68,7 @@ def main() -> None:
         print("SKIP: No usable abstract segments loaded from dataset")
         sys.exit(0)
 
-    test_question = (
-        test_questions[0] if test_questions else "What are the treatment outcomes?"
-    )
+    test_question = test_questions[0] if test_questions else "What are the treatment outcomes?"
 
     print(f"  Loaded {len(documents)} real PubMed abstract segments")
     print(f"  Example: {documents[0].page_content[:100]}...")

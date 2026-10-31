@@ -6,8 +6,8 @@ from ragfallback.retrieval.smart_hybrid import SmartThresholdHybridRetriever
 from ragfallback.retrieval.wrappers import RetrieverAsVectorStore
 
 __all__ = [
-    "SmartThresholdHybridRetriever",
     "FailoverRetriever",
     "ReRankerGuard",
     "RetrieverAsVectorStore",
+    "SmartThresholdHybridRetriever",
 ]

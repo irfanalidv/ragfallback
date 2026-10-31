@@ -1,7 +1,7 @@
 """Base class for fallback strategies."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 from langchain_core.language_models import BaseLanguageModel
 
@@ -13,10 +13,10 @@ class FallbackStrategy(ABC):
     def generate_queries(
         self,
         original_query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         attempt: int,
         llm: BaseLanguageModel,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Generate query variations for fallback.
 

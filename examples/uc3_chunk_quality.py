@@ -96,11 +96,14 @@ def main() -> None:
         )
         # Inject a synthetic bad chunk to demonstrate the detection path
         print("\n  Injecting 3 synthetic bad chunks to demonstrate detection...")
-        synthetic_bad = texts + [
-            "Too short.",  # 10 chars
-            "incomplete sentence that just cuts",  # 34 chars, no period
-            texts[0][:50] + " " + texts[0][:50],  # near-duplicate
-        ]
+        synthetic_bad = (
+            texts
+            + [
+                "Too short.",  # 10 chars
+                "incomplete sentence that just cuts",  # 34 chars, no period
+                texts[0][:50] + " " + texts[0][:50],  # near-duplicate
+            ]
+        )
         bad_report = checker.check(synthetic_bad)
         print(f"  After injection: {bad_report.summary()}")
         _show_violation_example(synthetic_bad, checker)
@@ -129,9 +132,7 @@ def main() -> None:
         print("  Re-check: 0 violations after auto_fix ✓")
     else:
         remaining = len(fixed_report.violations)
-        print(
-            f"  Re-check: {remaining} violation(s) remain (auto_fix is conservative by design)"
-        )
+        print(f"  Re-check: {remaining} violation(s) remain (auto_fix is conservative by design)")
 
     print("\n✅  UC-3 demo complete.")
     print("    Dataset: SQuAD (Wikipedia) — CC BY-SA 4.0")

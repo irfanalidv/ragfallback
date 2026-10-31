@@ -7,7 +7,7 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass
@@ -18,7 +18,7 @@ class CacheEntry:
     result: Any
     created_at: float
     hits: int = 0
-    last_hit_at: Optional[float] = None
+    last_hit_at: float | None = None
 
 
 @dataclass
@@ -34,7 +34,7 @@ class CacheStats:
     cached_entries: int
     evictions: int
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Return all fields as a plain JSON-serialisable dict."""
         return {
             "total_queries": self.total_queries,
@@ -62,10 +62,10 @@ class CacheMonitor:
             max_size: Maximum number of cached entries before LRU eviction.
             ttl_seconds: Entries older than this (in seconds) are expired.
         """
-        self._cache: Dict[str, CacheEntry] = {}
+        self._cache: dict[str, CacheEntry] = {}
         self._max_size = max_size
         self._ttl = ttl_seconds
-        self._stats: Dict[str, float] = defaultdict(float)
+        self._stats: dict[str, float] = defaultdict(float)
         self.logger = logging.getLogger(__name__)
 
     # ── Hashing ────────────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ class CacheMonitor:
 
     # ── Core logic (shared between sync and async wrappers) ────────────────────
 
-    def _check_hit(self, query_hash: str) -> Optional[Any]:
+    def _check_hit(self, query_hash: str) -> Any | None:
         """Return cached result if present and unexpired, else ``None``."""
         entry = self._cache.get(query_hash)
         if entry is None:
@@ -210,9 +210,7 @@ class CacheMonitor:
         misses = int(self._stats["misses"])
         hit_rate = hits / total if total > 0 else 0.0
         avg_hit_ms = self._stats["hit_latency_total"] / hits * 1000 if hits > 0 else 0.0
-        avg_miss_ms = (
-            self._stats["miss_latency_total"] / misses * 1000 if misses > 0 else 0.0
-        )
+        avg_miss_ms = self._stats["miss_latency_total"] / misses * 1000 if misses > 0 else 0.0
         return CacheStats(
             total_queries=total,
             cache_hits=hits,

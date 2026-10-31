@@ -7,8 +7,8 @@ No imports from ``ragfallback`` — only LangChain + vector-store libraries
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Optional, Sequence, Union
 
 from langchain_core.documents import Document
 
@@ -38,12 +38,12 @@ def _make_splitter(chunk_size: int, chunk_overlap: int):
 
 
 def load_sample_kb(
-    sources: Optional[Sequence[str]] = None,
+    sources: Sequence[str] | None = None,
     *,
     chunk_size: int = 400,
     chunk_overlap: int = 60,
-    kb_dir: Optional[Path] = None,
-) -> List[Document]:
+    kb_dir: Path | None = None,
+) -> list[Document]:
     """Load ``examples/sample_kb`` markdown files and split into chunks.
 
     Args:
@@ -59,7 +59,7 @@ def load_sample_kb(
     if not root.is_dir():
         raise FileNotFoundError(f"KB directory not found: {root}")
 
-    raw_docs: List[Document] = []
+    raw_docs: list[Document] = []
     for path in sorted(root.glob("*.md")):
         if sources is not None and path.name not in sources:
             continue
@@ -76,7 +76,7 @@ def load_sample_kb(
     splitter = _make_splitter(chunk_size, chunk_overlap)
     if splitter is None:
         # Character fallback if text_splitters is unavailable
-        out: List[Document] = []
+        out: list[Document] = []
         for d in raw_docs:
             text = d.page_content
             meta = dict(d.metadata)
@@ -86,7 +86,7 @@ def load_sample_kb(
                     out.append(Document(page_content=chunk, metadata=meta))
         return out
 
-    chunks: List[Document] = []
+    chunks: list[Document] = []
     for d in raw_docs:
         chunks.extend(splitter.split_documents([d]))
     return chunks
@@ -100,8 +100,8 @@ def get_embeddings(model_name: str = "all-MiniLM-L6-v2"):
 
 
 def build_chroma_store(
-    docs: List[Document],
-    persist_directory: Union[str, Path],
+    docs: list[Document],
+    persist_directory: str | Path,
     collection_name: str = "ragfallback_examples",
 ):
     """Build or refresh a persisted Chroma collection."""
@@ -116,7 +116,7 @@ def build_chroma_store(
     )
 
 
-def build_faiss_store(docs: List[Document], embeddings=None):
+def build_faiss_store(docs: list[Document], embeddings=None):
     """In-memory FAISS index from documents."""
     from langchain_community.vectorstores import FAISS
 
@@ -153,7 +153,7 @@ def load_real_dataset(
     if dataset_name == "squad":
         ds = load_dataset("rajpurkar/squad", split="validation")
         seen_contexts: dict = {}
-        probes: List[dict] = []
+        probes: list[dict] = []
         for row in ds:
             ctx = row["context"].strip()
             if ctx not in seen_contexts and len(seen_contexts) < max_docs:
@@ -170,9 +170,9 @@ def load_real_dataset(
                 )
         return list(seen_contexts.values()), probes
 
-    elif dataset_name == "sciq":
+    if dataset_name == "sciq":
         ds = load_dataset("allenai/sciq", split="test")
-        docs: List[Document] = []
+        docs: list[Document] = []
         probes = []
         for row in ds:
             support = (row.get("support") or "").strip()
@@ -193,7 +193,4 @@ def load_real_dataset(
                 break
         return docs, probes
 
-    else:
-        raise ValueError(
-            f"Unknown dataset '{dataset_name}'. Supported: 'squad', 'sciq'"
-        )
+    raise ValueError(f"Unknown dataset '{dataset_name}'. Supported: 'squad', 'sciq'")

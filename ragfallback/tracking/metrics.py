@@ -2,7 +2,6 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -25,7 +24,7 @@ class MetricsCollector:
     """
 
     def __init__(self):
-        self.metrics: List[QueryMetrics] = []
+        self.metrics: list[QueryMetrics] = []
         self.logger = logging.getLogger(__name__)
 
     def record_success(
@@ -33,7 +32,7 @@ class MetricsCollector:
         attempts: int,
         confidence: float,
         cost: float,
-        latency_ms: Optional[float] = None,
+        latency_ms: float | None = None,
         strategy_used: str = "unknown",
     ):
         """Record a successful query."""
@@ -51,7 +50,7 @@ class MetricsCollector:
         self,
         attempts: int,
         cost: float,
-        latency_ms: Optional[float] = None,
+        latency_ms: float | None = None,
         strategy_used: str = "unknown",
     ):
         """Record a failed query."""
@@ -65,7 +64,7 @@ class MetricsCollector:
         )
         self.metrics.append(metric)
 
-    def get_stats(self) -> Dict:
+    def get_stats(self) -> dict:
         """Get aggregated statistics."""
         if not self.metrics:
             return {
@@ -82,9 +81,7 @@ class MetricsCollector:
         success_rate = len(successful) / total_queries if total_queries > 0 else 0.0
 
         avg_confidence = (
-            sum(m.confidence for m in successful) / len(successful)
-            if successful
-            else 0.0
+            sum(m.confidence for m in successful) / len(successful) if successful else 0.0
         )
         avg_attempts = sum(m.attempts for m in self.metrics) / total_queries
         avg_latency = (

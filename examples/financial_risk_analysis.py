@@ -17,10 +17,7 @@ import os
 import sys
 
 _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if (
-    os.path.isdir(os.path.join(_repo_root, "ragfallback"))
-    and _repo_root not in sys.path
-):
+if os.path.isdir(os.path.join(_repo_root, "ragfallback")) and _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
 _examples_dir = os.path.dirname(os.path.abspath(__file__))
@@ -101,9 +98,7 @@ def main() -> None:
         print(f"     → {best}...")
 
     print("\n✅ Financial RAG demo complete (no paid API keys used).")
-    print(
-        "   To add LLM generation: set HF_TOKEN env var and pass an LLM to AdaptiveRAGRetriever."
-    )
+    print("   To add LLM generation: set HF_TOKEN env var and pass an LLM to AdaptiveRAGRetriever.")
 
 
 if __name__ == "__main__":

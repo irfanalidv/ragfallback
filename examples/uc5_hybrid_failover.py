@@ -60,9 +60,7 @@ def demo_hybrid_bm25_fallback(docs, vs) -> None:
 
     # _dense_scores_are_weak is part of the public API — demonstrate it
     print(f"\n  _dense_scores_are_weak([])  → {hybrid._dense_scores_are_weak([])}")
-    print(
-        f"  _dense_scores_are_weak([doc]) → {hybrid._dense_scores_are_weak(docs_out[:1])}"
-    )
+    print(f"  _dense_scores_are_weak([doc]) → {hybrid._dense_scores_are_weak(docs_out[:1])}")
 
 
 def demo_failover_on_empty(vs) -> None:

@@ -16,7 +16,7 @@ Env vars     : NONE required
 from __future__ import annotations
 
 import sys
-from typing import Any, List, Optional
+from typing import Any
 
 import _kb_common
 from langchain_core.documents import Document
@@ -41,14 +41,14 @@ class QdrantVectorShim:
         self._collection = collection_name
         self._emb = embeddings
 
-    def similarity_search(self, query: str, k: int = 4) -> List[Document]:
+    def similarity_search(self, query: str, k: int = 4) -> list[Document]:
         qv = self._emb.embed_query(query)
         hits = self._client.search(
             collection_name=self._collection,
             query_vector=list(qv),
             limit=k,
         )
-        out: List[Document] = []
+        out: list[Document] = []
         for h in hits:
             payload = h.payload or {}
             text = str(payload.get("page_content", ""))
@@ -56,16 +56,16 @@ class QdrantVectorShim:
             out.append(Document(page_content=text, metadata=meta))
         return out
 
-    def as_retriever(self, search_kwargs: Optional[dict[str, Any]] = None) -> Any:
+    def as_retriever(self, search_kwargs: dict[str, Any] | None = None) -> Any:
         sk = search_kwargs or {}
         k = int(sk.get("k", 4))
         parent = self
 
         class _R:
-            def invoke(self, query: str) -> List[Document]:
+            def invoke(self, query: str) -> list[Document]:
                 return parent.similarity_search(query, k=k)
 
-            def get_relevant_documents(self, query: str) -> List[Document]:
+            def get_relevant_documents(self, query: str) -> list[Document]:
                 return parent.similarity_search(query, k=k)
 
         return _R()
@@ -101,7 +101,7 @@ def main() -> int:
 
     texts = [d.page_content for d in docs]
     vectors = emb.embed_documents(texts)
-    points: List[PointStruct] = []
+    points: list[PointStruct] = []
     for i, (doc, vec) in enumerate(zip(docs, vectors)):
         payload = {"page_content": doc.page_content, **(doc.metadata or {})}
         points.append(

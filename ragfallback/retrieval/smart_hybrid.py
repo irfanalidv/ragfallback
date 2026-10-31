@@ -11,7 +11,8 @@ Install BM25: ``pip install rank_bm25`` (optional; required only if you use bm25
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Literal, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any, Literal
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 ScoreMode = Literal["distance", "similarity", "relative_similarity"]
 
 
-def _annotate(docs: List[Document], source: str) -> List[Document]:
+def _annotate(docs: list[Document], source: str) -> list[Document]:
     out = []
     for d in docs:
         md = dict(d.metadata or {})
@@ -46,18 +47,18 @@ class SmartThresholdHybridRetriever(BaseRetriever):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     vectorstore: Any
-    bm25_retriever: Optional[Any] = None
+    bm25_retriever: Any | None = None
     fetch_k: int = 20
     final_k: int = 5
     score_mode: ScoreMode = "distance"
     # For score_mode == "distance" (lower is better, e.g. L2): keep if score <= max_distance
-    max_distance: Optional[float] = None
+    max_distance: float | None = None
     # For score_mode == "similarity" (higher is better, e.g. cosine sim): keep if score >= min_similarity
-    min_similarity: Optional[float] = 0.7
+    min_similarity: float | None = 0.7
     # For score_mode == "relative_similarity": keep docs with score >= best * relative_floor
     relative_floor: float = 0.85
 
-    def _dense_scores_are_weak(self, docs: List[Document]) -> bool:
+    def _dense_scores_are_weak(self, docs: list[Document]) -> bool:
         """Return ``True`` when dense results are insufficient and BM25 fallback should run.
 
         This is the decision gate used inside :meth:`_get_relevant_documents` before
@@ -75,7 +76,7 @@ class SmartThresholdHybridRetriever(BaseRetriever):
         """
         return len(docs) == 0
 
-    def _filter_scored(self, pairs: Sequence[Tuple[Document, float]]) -> List[Document]:
+    def _filter_scored(self, pairs: Sequence[tuple[Document, float]]) -> list[Document]:
         if not pairs:
             return []
         scores = [s for _, s in pairs]
@@ -102,9 +103,9 @@ class SmartThresholdHybridRetriever(BaseRetriever):
         query: str,
         *,
         run_manager: CallbackManagerForRetrieverRun,
-    ) -> List[Document]:
+    ) -> list[Document]:
         vs = self.vectorstore
-        docs: List[Document] = []
+        docs: list[Document] = []
 
         if hasattr(vs, "similarity_search_with_score"):
             try:
@@ -150,8 +151,8 @@ class SmartThresholdHybridRetriever(BaseRetriever):
         fetch_k: int = 20,
         final_k: int = 5,
         score_mode: ScoreMode = "distance",
-        max_distance: Optional[float] = None,
-        min_similarity: Optional[float] = 0.7,
+        max_distance: float | None = None,
+        min_similarity: float | None = 0.7,
         relative_floor: float = 0.85,
     ) -> SmartThresholdHybridRetriever:
         """

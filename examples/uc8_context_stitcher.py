@@ -64,9 +64,7 @@ def main() -> None:
     # Dense retrieval skips chunk 1 (adjacent to chunk 0) and returns
     # non-consecutive indices, fragmenting the answer across top-k.
     persist = Path(tempfile.mkdtemp(prefix="ragfallback_uc8_")) / "chroma"
-    vs = _kb_common.build_chroma_store(
-        docs, persist_directory=persist, collection_name="uc8"
-    )
+    vs = _kb_common.build_chroma_store(docs, persist_directory=persist, collection_name="uc8")
 
     query = "How many days of annual leave do employees get?"
     retrieved = vs.similarity_search(query, k=3)
@@ -77,9 +75,7 @@ def main() -> None:
         idx = d.metadata.get("chunk_index", "?")
         print(f"  [chunk {idx}] {d.page_content[:70]}...")
 
-    stitcher = OverlappingContextStitcher(
-        chunk_index_key="chunk_index", source_key="source"
-    )
+    stitcher = OverlappingContextStitcher(chunk_index_key="chunk_index", source_key="source")
     stitched = stitcher.stitch(retrieved)
 
     print(f"\n--- After stitching: {len(stitched)} merged context block(s) ---")
@@ -98,9 +94,7 @@ def main() -> None:
 
     print("\n--- expand_neighbor_indices (radius=1) ---")
     expanded = stitcher.expand_neighbor_indices(retrieved[:1], neighbor_radius=1)
-    print(
-        f"  Input: 1 chunk → expanded to {len(expanded)} chunk(s) (neighbors included)"
-    )
+    print(f"  Input: 1 chunk → expanded to {len(expanded)} chunk(s) (neighbors included)")
 
 
 if __name__ == "__main__":

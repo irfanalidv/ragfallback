@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import HumanMessage
@@ -13,9 +13,9 @@ from langchain_core.messages import HumanMessage
 from ragfallback.strategies.base import FallbackStrategy
 
 __all__ = [
+    "HopResult",
     "MultiHopFallbackStrategy",
     "MultiHopResult",
-    "HopResult",
 ]
 
 _logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class HopResult:
 
     hop_number: int
     sub_question: str
-    retrieved_chunks: List[str]
+    retrieved_chunks: list[str]
     partial_answer: str
     confidence: float
 
@@ -63,7 +63,7 @@ class MultiHopResult:
     """Aggregated output from a complete multi-hop retrieval run."""
 
     final_answer: str
-    hops: List[HopResult]
+    hops: list[HopResult]
     total_hops: int
     success: bool
 
@@ -131,10 +131,10 @@ class MultiHopFallbackStrategy(FallbackStrategy):
     def generate_queries(
         self,
         original_query: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         attempt: int,
         llm: BaseLanguageModel,
-    ) -> List[str]:
+    ) -> list[str]:
         """Decompose *original_query* into sub-questions for independent retrieval.
 
         Called by :class:`~ragfallback.AdaptiveRAGRetriever` on each fallback attempt.
@@ -201,7 +201,7 @@ class MultiHopFallbackStrategy(FallbackStrategy):
                 success=False,
             )
 
-        hops: List[HopResult] = []
+        hops: list[HopResult] = []
         for i, sub_q in enumerate(sub_questions, start=1):
             _logger.info("Hop %d/%d: %s", i, len(sub_questions), sub_q)
             chunks = self._retrieve(retriever, sub_q)
@@ -217,11 +217,7 @@ class MultiHopFallbackStrategy(FallbackStrategy):
             )
 
         final = self._synthesise(question, hops, llm)
-        success = (
-            any(h.confidence >= 0.5 for h in hops)
-            and bool(final)
-            and final != "NOT_FOUND"
-        )
+        success = any(h.confidence >= 0.5 for h in hops) and bool(final) and final != "NOT_FOUND"
         return MultiHopResult(
             final_answer=final,
             hops=hops,
@@ -233,7 +229,7 @@ class MultiHopFallbackStrategy(FallbackStrategy):
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _decompose(self, question: str, llm: BaseLanguageModel) -> List[str]:
+    def _decompose(self, question: str, llm: BaseLanguageModel) -> list[str]:
         """Ask the LLM to break *question* into up to ``max_hops`` sub-questions."""
         prompt = _DECOMPOSE_PROMPT.format(question=question, max_hops=self.max_hops)
         try:
@@ -260,15 +256,11 @@ class MultiHopFallbackStrategy(FallbackStrategy):
             _logger.error("_decompose: LLM call failed: %s", exc)
         return []
 
-    def _retrieve(self, retriever: Any, query: str) -> List[str]:
+    def _retrieve(self, retriever: Any, query: str) -> list[str]:
         """Return up to ``top_k`` ``page_content`` strings from *retriever*."""
         try:
             invoke = getattr(retriever, "invoke", None)
-            docs = (
-                invoke(query)
-                if invoke is not None
-                else retriever.get_relevant_documents(query)
-            )
+            docs = invoke(query) if invoke is not None else retriever.get_relevant_documents(query)
             if not isinstance(docs, list):
                 return []
             return [
@@ -281,7 +273,7 @@ class MultiHopFallbackStrategy(FallbackStrategy):
             return []
 
     def _answer_hop(
-        self, sub_question: str, chunks: List[str], llm: BaseLanguageModel
+        self, sub_question: str, chunks: list[str], llm: BaseLanguageModel
     ) -> tuple[str, float]:
         """Generate a partial answer for one hop and estimate confidence.
 
@@ -292,15 +284,11 @@ class MultiHopFallbackStrategy(FallbackStrategy):
         if not chunks:
             return "NOT_FOUND", 0.0
 
-        context_str = "\n\n".join(
-            f"[{i + 1}] {c}" for i, c in enumerate(chunks) if c.strip()
-        )
+        context_str = "\n\n".join(f"[{i + 1}] {c}" for i, c in enumerate(chunks) if c.strip())
         prompt = _HOP_ANSWER_PROMPT.format(question=sub_question, context=context_str)
         try:
             response = llm.invoke([HumanMessage(content=prompt)])
-            text = (
-                response.content if hasattr(response, "content") else str(response)
-            ).strip()
+            text = (response.content if hasattr(response, "content") else str(response)).strip()
             if text.upper() == "NOT_FOUND" or not text:
                 return "NOT_FOUND", 0.0
             confidence = 0.8 if len(text) > 20 else 0.5
@@ -310,16 +298,12 @@ class MultiHopFallbackStrategy(FallbackStrategy):
             return "NOT_FOUND", 0.0
 
     def _synthesise(
-        self, original_question: str, hops: List[HopResult], llm: BaseLanguageModel
+        self, original_question: str, hops: list[HopResult], llm: BaseLanguageModel
     ) -> str:
         """Combine all hop evidence into a single final answer."""
         evidence_parts = []
         for hop in hops:
-            answer = (
-                hop.partial_answer
-                if hop.partial_answer != "NOT_FOUND"
-                else "(not found)"
-            )
+            answer = hop.partial_answer if hop.partial_answer != "NOT_FOUND" else "(not found)"
             evidence_parts.append(
                 f"Sub-question {hop.hop_number}: {hop.sub_question}\nAnswer: {answer}"
             )
@@ -329,9 +313,7 @@ class MultiHopFallbackStrategy(FallbackStrategy):
         )
         try:
             response = llm.invoke([HumanMessage(content=prompt)])
-            return (
-                response.content if hasattr(response, "content") else str(response)
-            ).strip()
+            return (response.content if hasattr(response, "content") else str(response)).strip()
         except Exception as exc:
             _logger.error("_synthesise: LLM call failed: %s", exc)
             found = [h.partial_answer for h in hops if h.partial_answer != "NOT_FOUND"]
@@ -342,7 +324,7 @@ class MultiHopFallbackStrategy(FallbackStrategy):
             )
 
 
-def _extract_list_from_text(text: str) -> List[str]:
+def _extract_list_from_text(text: str) -> list[str]:
     """Best-effort extraction of a list from non-JSON LLM output."""
     import re
 
@@ -354,8 +336,5 @@ def _extract_list_from_text(text: str) -> List[str]:
                 return [str(q) for q in parsed if q]
         except json.JSONDecodeError:
             pass
-    lines = [
-        ln.strip().lstrip("-•*123456789. ").strip('"').strip("'")
-        for ln in text.splitlines()
-    ]
+    lines = [ln.strip().lstrip("-•*123456789. ").strip('"').strip("'") for ln in text.splitlines()]
     return [ln for ln in lines if len(ln) > 10]

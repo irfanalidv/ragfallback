@@ -1,7 +1,5 @@
 """Factory functions for creating embeddings (open-source and paid)."""
 
-from typing import Optional
-
 from langchain_core.embeddings import Embeddings
 
 
@@ -37,7 +35,7 @@ def create_open_source_embeddings(model_name: str = "all-MiniLM-L6-v2") -> Embed
 
 
 def create_ollama_embeddings(
-    model: str = "nomic-embed-text", base_url: Optional[str] = None
+    model: str = "nomic-embed-text", base_url: str | None = None
 ) -> Embeddings:
     """
     Create embeddings using Ollama (open-source, runs locally).
@@ -56,13 +54,12 @@ def create_ollama_embeddings(
         return OllamaEmbeddings(model=model, base_url=base_url)
     except ImportError:
         raise ImportError(
-            "Ollama embeddings not installed. "
-            "Install with: pip install langchain-community"
+            "Ollama embeddings not installed. Install with: pip install langchain-community"
         )
 
 
 def create_openai_embeddings(
-    model: str = "text-embedding-3-small", api_key: Optional[str] = None
+    model: str = "text-embedding-3-small", api_key: str | None = None
 ) -> Embeddings:
     """
     Create OpenAI embeddings (paid, requires API key).
@@ -80,12 +77,11 @@ def create_openai_embeddings(
         return OpenAIEmbeddings(model=model, api_key=api_key)
     except ImportError:
         raise ImportError(
-            "OpenAI embeddings not installed. "
-            "Install with: pip install langchain-openai"
+            "OpenAI embeddings not installed. Install with: pip install langchain-openai"
         )
 
 
-def create_anthropic_embeddings(api_key: Optional[str] = None) -> Embeddings:
+def create_anthropic_embeddings(api_key: str | None = None) -> Embeddings:
     """
     Create Anthropic embeddings (paid, requires API key).
 
@@ -96,14 +92,10 @@ def create_anthropic_embeddings(api_key: Optional[str] = None) -> Embeddings:
         Embeddings instance
     """
     try:
-        pass
-
         # Note: Anthropic doesn't have separate embeddings, use OpenAI or open-source
         raise NotImplementedError(
             "Anthropic doesn't provide separate embeddings. "
             "Use OpenAI embeddings or open-source alternatives."
         )
     except ImportError:
-        raise ImportError(
-            "Anthropic not installed. Install with: pip install langchain-anthropic"
-        )
+        raise ImportError("Anthropic not installed. Install with: pip install langchain-anthropic")

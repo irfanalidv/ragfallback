@@ -12,14 +12,14 @@ from ragfallback.mlops.query_simulator import QuerySimulator, SimQuery
 from ragfallback.mlops.ragas_hook import RagasHook, RagasReport
 
 __all__ = [
+    "BaselineRegistry",
+    "GoldenReport",
+    "GoldenRunner",
+    "MLflowLogger",
+    "QuerySimulator",
     "RagasHook",
     "RagasReport",
-    "BaselineRegistry",
     "RegressionError",
-    "GoldenRunner",
-    "GoldenReport",
-    "QuerySimulator",
     "SimQuery",
-    "MLflowLogger",
     "generate_locustfile",
 ]

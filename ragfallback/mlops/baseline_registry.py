@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ragfallback.mlops.golden_runner import GoldenReport
@@ -29,7 +29,7 @@ class BaselineRegistry:
     def __init__(self, path: str = "baselines.json") -> None:
         """Set storage path and load existing JSON if present."""
         self.path = Path(path)
-        self._data: Dict[str, Any] = {}
+        self._data: dict[str, Any] = {}
         self._load()
 
     def _load(self) -> None:
@@ -40,9 +40,7 @@ class BaselineRegistry:
         try:
             self._data = json.loads(self.path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
-            logger.warning(
-                "Could not read baselines from %s — starting empty.", self.path
-            )
+            logger.warning("Could not read baselines from %s — starting empty.", self.path)
             self._data = {}
 
     def _save(self) -> None:
@@ -54,13 +52,13 @@ class BaselineRegistry:
         """Return True if a baseline exists for ``dataset``."""
         return dataset in self._data
 
-    def get(self, dataset: str) -> Dict[str, Any]:
+    def get(self, dataset: str) -> dict[str, Any]:
         """Return the baseline dict for ``dataset`` or raise KeyError."""
         if dataset not in self._data:
             raise KeyError(f"No baseline registered for dataset '{dataset}'")
         return dict(self._data[dataset])
 
-    def update(self, report: "GoldenReport", dataset: str) -> None:
+    def update(self, report: GoldenReport, dataset: str) -> None:
         """Persist aggregated metrics from ``report`` under ``dataset``."""
         from ragfallback.mlops.golden_runner import GoldenReport
 
@@ -82,10 +80,10 @@ class BaselineRegistry:
 
     def compare_or_fail(
         self,
-        report: "GoldenReport",
+        report: GoldenReport,
         dataset: str,
         threshold: float = 0.05,
-        latency_threshold: Optional[float] = None,
+        latency_threshold: float | None = None,
     ) -> None:
         """Raise RegressionError if any metric regresses beyond ``threshold``.
 
@@ -101,7 +99,7 @@ class BaselineRegistry:
             logger.warning("No baseline for '%s' — skipping regression check.", dataset)
             return
         baseline = self.get(dataset)
-        lines: List[str] = []
+        lines: list[str] = []
         r = report.ragas
 
         def check_score(name: str, new_val: float, old_val: Any) -> None:
@@ -110,14 +108,10 @@ class BaselineRegistry:
             except (TypeError, ValueError):
                 return
             if new_val < old_f * (1.0 - threshold):
-                lines.append(
-                    f"  {name}: {old_f:.4f} → {new_val:.4f} (Δ{new_val - old_f:+.4f})"
-                )
+                lines.append(f"  {name}: {old_f:.4f} → {new_val:.4f} (Δ{new_val - old_f:+.4f})")
 
         check_score("faithfulness", r.faithfulness, baseline.get("faithfulness"))
-        check_score(
-            "answer_relevance", r.answer_relevance, baseline.get("answer_relevance")
-        )
+        check_score("answer_relevance", r.answer_relevance, baseline.get("answer_relevance"))
         check_score(
             "context_precision",
             r.context_precision,
@@ -132,8 +126,7 @@ class BaselineRegistry:
             old_lat = float(baseline.get(_LATENCY_KEY, new_lat))
             if new_lat > old_lat * (1.0 + lat_t):
                 lines.append(
-                    f"  {_LATENCY_KEY}: {old_lat:.4f} → {new_lat:.4f} "
-                    f"(Δ{new_lat - old_lat:+.4f})"
+                    f"  {_LATENCY_KEY}: {old_lat:.4f} → {new_lat:.4f} (Δ{new_lat - old_lat:+.4f})"
                 )
         except (TypeError, ValueError):
             pass

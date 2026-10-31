@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import os
-from typing import Optional, Tuple
 
 
-def load_env(dotenv_path: Optional[str] = None) -> bool:
+def load_env(dotenv_path: str | None = None) -> bool:
     """
     Load ``.env`` into ``os.environ`` if ``python-dotenv`` is installed.
 
@@ -27,7 +26,7 @@ def load_env(dotenv_path: Optional[str] = None) -> bool:
     return True
 
 
-def mistral_config_from_env() -> Tuple[Optional[str], str]:
+def mistral_config_from_env() -> tuple[str | None, str]:
     """Return ``(api_key, model_name)`` from the environment (after optional ``load_env``)."""
     key = os.environ.get("MISTRAL_API_KEY") or os.environ.get("MISTRAL_API_TOKEN")
     model = os.environ.get("MISTRAL_MODEL", "mistral-small-latest")

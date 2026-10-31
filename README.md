@@ -101,8 +101,7 @@ for row in ds:
         seen.add(ctx)
         docs.append(Document(page_content=ctx, metadata={"source": "squad"}))
     if row["answers"]["text"]:
-        probes.append({"question": row["question"],
-                       "ground_truth": row["answers"]["text"][0]})
+        probes.append({"question": row["question"], "ground_truth": row["answers"]["text"][0]})
 print(f"Loaded {len(docs)} real passages, {len(probes)} Q&A pairs")
 
 # 2 — check chunk quality before embedding
@@ -126,7 +125,8 @@ question = probes[0]["question"]
 retrieved = store.as_retriever(search_kwargs={"k": 4}).invoke(question)
 answer = retrieved[0].page_content if retrieved else "Not found"
 score = RAGEvaluator().evaluate(
-    question, answer,
+    question,
+    answer,
     [d.page_content for d in retrieved],
     ground_truth=probes[0]["ground_truth"],
 )
@@ -218,6 +218,7 @@ Vector store (Chroma / FAISS / Qdrant / …)
 
 ```python
 from ragfallback.diagnostics import ChunkQualityChecker
+
 report = ChunkQualityChecker(min_chars=100, max_chars=8000).check(docs)
 if report.has_issues:
     fixed = ChunkQualityChecker().auto_fix(docs)
@@ -227,24 +228,27 @@ if report.has_issues:
 
 ```python
 from ragfallback.diagnostics import EmbeddingGuard
+
 guard = EmbeddingGuard(expected_dim=384)
-guard.validate(embeddings_model).raise_if_failed()        # model-level check
-guard.validate_raw_vectors(vectors).raise_if_failed()     # pre-computed vectors
+guard.validate(embeddings_model).raise_if_failed()  # model-level check
+guard.validate_raw_vectors(vectors).raise_if_failed()  # pre-computed vectors
 ```
 
 **EmbeddingQualityProbe** — heuristic domain-fit check: if similarity scores are uniformly low, the model is likely a poor domain match.
 
 ```python
 from ragfallback.diagnostics import EmbeddingQualityProbe
+
 result = EmbeddingQualityProbe().run(embeddings, query="...", reference_snippets=[...])
 if not result.ok:
-    print(result.warnings)   # "consider domain-specific model"
+    print(result.warnings)  # "consider domain-specific model"
 ```
 
 **RetrievalHealthCheck** — labeled recall@k or quick substring smoke probes against a live vector store.
 
 ```python
 from ragfallback.diagnostics import RetrievalHealthCheck
+
 health = RetrievalHealthCheck(k=5)
 report = health.run_substring_probes(vector_store, {"What is Python?": "high-level language"})
 print(report.hit_rate, report.avg_latency_ms)
@@ -254,8 +258,9 @@ print(report.hit_rate, report.avg_latency_ms)
 
 ```python
 from ragfallback.diagnostics import StaleIndexDetector
+
 det = StaleIndexDetector(manifest_path="./index_manifest.json")
-det.record_paths(["./docs/policy.md"])          # record after build
+det.record_paths(["./docs/policy.md"])  # record after build
 report = det.check_paths(["./docs/policy.md"])  # check before serving
 if report.has_stale:
     print(report.summary())
@@ -265,6 +270,7 @@ if report.has_stale:
 
 ```python
 from ragfallback.diagnostics import ContextWindowGuard
+
 guard = ContextWindowGuard.from_model_name("gpt-4o")
 selected, report = guard.select(query, retrieved_docs, embeddings)
 ```
@@ -273,6 +279,7 @@ selected, report = guard.select(query, retrieved_docs, embeddings)
 
 ```python
 from ragfallback.diagnostics import OverlappingContextStitcher
+
 merged = OverlappingContextStitcher().stitch(retrieved_docs)
 ```
 
@@ -280,7 +287,8 @@ merged = OverlappingContextStitcher().stitch(retrieved_docs)
 
 ```python
 from ragfallback.diagnostics import sanitize_documents
-clean_docs = sanitize_documents(dirty_docs)   # safe for Chroma, Pinecone, Qdrant
+
+clean_docs = sanitize_documents(dirty_docs)  # safe for Chroma, Pinecone, Qdrant
 ```
 
 ---
@@ -291,15 +299,17 @@ clean_docs = sanitize_documents(dirty_docs)   # safe for Chroma, Pinecone, Qdran
 
 ```python
 from ragfallback.retrieval import SmartThresholdHybridRetriever
+
 retriever = SmartThresholdHybridRetriever.from_documents(
     docs, embeddings, dense_threshold=0.5, k=4
-)   # pip install ragfallback[hybrid] for BM25
+)  # pip install ragfallback[hybrid] for BM25
 ```
 
 **FailoverRetriever** — if the primary retriever raises or returns fewer than `min_results` docs, automatically switches to a secondary.
 
 ```python
 from ragfallback.retrieval import FailoverRetriever
+
 retriever = FailoverRetriever(primary=chroma_retriever, fallback=faiss_retriever, min_results=1)
 ```
 
@@ -307,6 +317,7 @@ retriever = FailoverRetriever(primary=chroma_retriever, fallback=faiss_retriever
 
 ```python
 from ragfallback.retrieval import ReRankerGuard
+
 guard = ReRankerGuard(rerank_fn=my_cross_encoder_rerank, top_n=4)
 docs = guard.apply(query, retrieved_docs)
 ```
@@ -315,6 +326,7 @@ docs = guard.apply(query, retrieved_docs)
 
 ```python
 from ragfallback.retrieval import RetrieverAsVectorStore
+
 shim = RetrieverAsVectorStore(hybrid_retriever)
 retriever = AdaptiveRAGRetriever(vector_store=shim, llm=llm)
 ```
@@ -331,7 +343,7 @@ from ragfallback.strategies import QueryVariationsStrategy
 
 retriever = AdaptiveRAGRetriever(
     vector_store=store,
-    llm=llm,                                      # any LangChain LLM
+    llm=llm,  # any LangChain LLM
     strategies=[QueryVariationsStrategy(num_variations=2)],
     confidence_threshold=0.7,
     max_attempts=3,
@@ -365,6 +377,7 @@ asyncio.run(retriever.aquery_with_fallback("How do API tokens expire?"))
 
 ```python
 from ragfallback.strategies import MultiHopFallbackStrategy
+
 result = MultiHopFallbackStrategy(max_hops=3).run(question, retriever, llm)
 print(result.final_answer, result.total_hops)
 ```
@@ -377,15 +390,17 @@ print(result.final_answer, result.total_hops)
 
 ```python
 from ragfallback import CostTracker
+
 tracker = CostTracker(budget_usd=1.0)
 tracker.record(model="mistral-small-latest", input_tokens=500, output_tokens=200)
-print(tracker.get_report())   # total cost, budget remaining
+print(tracker.get_report())  # total cost, budget remaining
 ```
 
 **MetricsCollector** — records latency, success/failure counts, and confidence scores across retrieval attempts.
 
 ```python
 from ragfallback import MetricsCollector
+
 metrics = MetricsCollector()
 # passed automatically to AdaptiveRAGRetriever; or record manually:
 metrics.record_attempt(success=True, latency_ms=120, confidence=0.85)
@@ -436,6 +451,7 @@ print(report.cache_stats)
 
 ```python
 from ragfallback.evaluation import RAGEvaluator
+
 ev = RAGEvaluator()
 score = ev.evaluate(question, answer, context_docs, ground_truth="...")
 print(score.overall_score, score.faithfulness_score, score.recall_at_k)
@@ -521,25 +537,43 @@ pip install ragfallback[mlops]                       # MLOps eval layer (RAGAS +
 ## Subpackage import map
 
 ```python
-from ragfallback import AdaptiveRAGRetriever, QueryResult, CostTracker, MetricsCollector, CacheMonitor
+from ragfallback import (
+    AdaptiveRAGRetriever,
+    QueryResult,
+    CostTracker,
+    MetricsCollector,
+    CacheMonitor,
+)
 
 from ragfallback.diagnostics import (
-    ChunkQualityChecker, EmbeddingGuard, EmbeddingQualityProbe,
-    RetrievalHealthCheck, StaleIndexDetector, ContextWindowGuard,
-    OverlappingContextStitcher, sanitize_documents, sanitize_metadata,
+    ChunkQualityChecker,
+    EmbeddingGuard,
+    EmbeddingQualityProbe,
+    RetrievalHealthCheck,
+    StaleIndexDetector,
+    ContextWindowGuard,
+    OverlappingContextStitcher,
+    sanitize_documents,
+    sanitize_metadata,
 )
 from ragfallback.retrieval import (
-    SmartThresholdHybridRetriever, FailoverRetriever,
-    ReRankerGuard, RetrieverAsVectorStore,
+    SmartThresholdHybridRetriever,
+    FailoverRetriever,
+    ReRankerGuard,
+    RetrieverAsVectorStore,
 )
 from ragfallback.strategies import QueryVariationsStrategy, MultiHopFallbackStrategy
 from ragfallback.evaluation import RAGEvaluator
 from ragfallback.tracking import CacheMonitor, CacheStats
 from ragfallback.mlops import (
-    RagasHook, RagasReport,
-    BaselineRegistry, RegressionError,
-    GoldenRunner, GoldenReport,
-    QuerySimulator, SimQuery,
+    RagasHook,
+    RagasReport,
+    BaselineRegistry,
+    RegressionError,
+    GoldenRunner,
+    GoldenReport,
+    QuerySimulator,
+    SimQuery,
     MLflowLogger,
     generate_locustfile,
 )
@@ -570,7 +604,7 @@ hook = RagasHook(llm=None, embeddings=embeddings)
 
 # 2 — Run against 75 real SQuAD QA pairs
 runner = GoldenRunner(
-    retriever=retriever,           # AdaptiveRAGRetriever instance
+    retriever=retriever,  # AdaptiveRAGRetriever instance
     ragas_hook=hook,
     dataset="examples/golden_qa.json",
 )
@@ -583,8 +617,8 @@ print(f"Fallback rate   : {report.fallback_rate:.1%}")
 
 # 3 — Regression gate: fails if any metric drops > 5% vs baseline
 registry = BaselineRegistry("baselines.json")
-registry.compare_or_fail(report, dataset="my_dataset")   # raises RegressionError if degraded
-registry.update(report, dataset="my_dataset")             # save new baseline
+registry.compare_or_fail(report, dataset="my_dataset")  # raises RegressionError if degraded
+registry.update(report, dataset="my_dataset")  # save new baseline
 ```
 
 ### Adversarial query simulation

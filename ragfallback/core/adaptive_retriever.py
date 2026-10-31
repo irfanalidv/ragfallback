@@ -9,7 +9,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseLanguageModel
@@ -32,7 +32,7 @@ class QueryResult:
     confidence: float
     attempts: int
     cost: float
-    intermediate_steps: Optional[List[Dict]] = None
+    intermediate_steps: list[dict] | None = None
 
     def __repr__(self):
         return (
@@ -63,13 +63,13 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         llm: BaseLanguageModel,
         embedding_model: Embeddings,
         fallback_strategy: str = "query_variations",
-        fallback_strategies: Optional[List[FallbackStrategy]] = None,
+        fallback_strategies: list[FallbackStrategy] | None = None,
         max_attempts: int = 3,
         min_confidence: float = 0.7,
-        cost_tracker: Optional[CostTracker] = None,
-        metrics_collector: Optional[MetricsCollector] = None,
+        cost_tracker: CostTracker | None = None,
+        metrics_collector: MetricsCollector | None = None,
         enable_logging: bool = True,
-        answer_prompt_template: Optional[str] = None,
+        answer_prompt_template: str | None = None,
     ):
         self.vector_store = vector_store
         self.llm = llm
@@ -78,9 +78,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         self.min_confidence = min_confidence
         self.cost_tracker = cost_tracker or CostTracker()
         self.metrics_collector = metrics_collector or MetricsCollector()
-        self.answer_prompt_template = (
-            answer_prompt_template or self.DEFAULT_ANSWER_PROMPT
-        )
+        self.answer_prompt_template = answer_prompt_template or self.DEFAULT_ANSWER_PROMPT
         self.logger = logging.getLogger(__name__) if enable_logging else None
 
         if fallback_strategies:
@@ -94,7 +92,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
     def query_with_fallback(
         self,
         question: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
         return_intermediate_steps: bool = False,
         enforce_budget: bool = False,
     ) -> QueryResult:
@@ -141,7 +139,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                     retriever=retriever,
                     llm=self.llm,
                 )
-                step_data: Dict[str, Any] = {
+                step_data: dict[str, Any] = {
                     "attempt": attempt_num,
                     "query": question,
                     "strategy": "multi_hop",
@@ -263,9 +261,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             )
 
         if intermediate_steps:
-            best_attempt = max(
-                intermediate_steps, key=lambda x: x.get("confidence", 0.0)
-            )
+            best_attempt = max(intermediate_steps, key=lambda x: x.get("confidence", 0.0))
             best_answer = best_attempt.get("answer", "No answer found")
             best_source = best_attempt.get("source", "")
             best_confidence = best_attempt.get("confidence", 0.0)
@@ -278,9 +274,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             attempts=len(intermediate_steps),
             cost=total_cost,
             latency_ms=latency_ms,
-            strategy_used=(
-                self.strategies[0].get_name() if self.strategies else "unknown"
-            ),
+            strategy_used=(self.strategies[0].get_name() if self.strategies else "unknown"),
         )
 
         return QueryResult(
@@ -289,15 +283,13 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             confidence=best_confidence,
             attempts=len(intermediate_steps) or 1,
             cost=total_cost,
-            intermediate_steps=(
-                intermediate_steps if return_intermediate_steps else None
-            ),
+            intermediate_steps=(intermediate_steps if return_intermediate_steps else None),
         )
 
     async def aquery_with_fallback(
         self,
         question: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
         return_intermediate_steps: bool = False,
         enforce_budget: bool = False,
     ) -> QueryResult:
@@ -317,7 +309,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             :class:`QueryResult` with the same fields as the sync version.
         """
         context = context or {}
-        intermediate_steps: List[Dict[str, Any]] = []
+        intermediate_steps: list[dict[str, Any]] = []
         total_cost = 0.0
         loop = asyncio.get_event_loop()
         start = loop.time()
@@ -350,7 +342,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                         llm=self.llm,
                     ),
                 )
-                step_data: Dict[str, Any] = {
+                step_data: dict[str, Any] = {
                     "attempt": attempt_num,
                     "query": question,
                     "strategy": "multi_hop",
@@ -478,9 +470,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             )
 
         if intermediate_steps:
-            best_attempt = max(
-                intermediate_steps, key=lambda x: x.get("confidence", 0.0)
-            )
+            best_attempt = max(intermediate_steps, key=lambda x: x.get("confidence", 0.0))
             best_answer = best_attempt.get("answer", "No answer found")
             best_source = best_attempt.get("source", "")
             best_confidence = best_attempt.get("confidence", 0.0)
@@ -493,9 +483,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             attempts=len(intermediate_steps),
             cost=total_cost,
             latency_ms=latency_ms,
-            strategy_used=(
-                self.strategies[0].get_name() if self.strategies else "unknown"
-            ),
+            strategy_used=(self.strategies[0].get_name() if self.strategies else "unknown"),
         )
 
         return QueryResult(
@@ -504,14 +492,10 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             confidence=best_confidence,
             attempts=len(intermediate_steps) or 1,
             cost=total_cost,
-            intermediate_steps=(
-                intermediate_steps if return_intermediate_steps else None
-            ),
+            intermediate_steps=(intermediate_steps if return_intermediate_steps else None),
         )
 
-    async def _aretrieve_documents(
-        self, query: str, context: Dict[str, Any]
-    ) -> List[Any]:
+    async def _aretrieve_documents(self, query: str, context: dict[str, Any]) -> list[Any]:
         """Async document retrieval; falls back to thread pool if ``ainvoke`` absent."""
         try:
             search_kwargs = self._build_search_kwargs(context)
@@ -523,9 +507,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
             # Fall back: run sync invoke in executor
             loop = asyncio.get_event_loop()
             invoke = getattr(retriever, "invoke", retriever.get_relevant_documents)
-            return list(
-                await loop.run_in_executor(None, functools.partial(invoke, query)) or []
-            )
+            return list(await loop.run_in_executor(None, functools.partial(invoke, query)) or [])
         except Exception as exc:
             if self.logger:
                 self.logger.error("async retrieve error: %s", exc)
@@ -535,9 +517,9 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         self,
         question: str,
         query: str,
-        documents: List[Any],
-        context: Dict[str, Any],
-    ) -> Tuple[str, str, float, float]:
+        documents: list[Any],
+        context: dict[str, Any],
+    ) -> tuple[str, str, float, float]:
         """Async answer generation; falls back to thread pool if ``ainvoke`` absent."""
         docs_text = self._format_documents(documents)
         prompt = self._build_answer_prompt(question, docs_text, context)
@@ -561,9 +543,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                     None, functools.partial(self.llm.invoke, messages)
                 )
 
-            answer_text = (
-                response.content if hasattr(response, "content") else str(response)
-            )
+            answer_text = response.content if hasattr(response, "content") else str(response)
 
             if hasattr(response, "response_metadata"):
                 metadata = response.response_metadata
@@ -590,25 +570,21 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         cost = self.cost_tracker.get_last_cost()
         return answer, source, confidence, cost
 
-    def _retrieve_documents(self, query: str, context: Dict[str, Any]) -> List:
+    def _retrieve_documents(self, query: str, context: dict[str, Any]) -> list:
         """Query the store, applying any metadata filters from context."""
         try:
             search_kwargs = self._build_search_kwargs(context)
             retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
             invoke = getattr(retriever, "invoke", None)
-            return (
-                invoke(query)
-                if invoke is not None
-                else retriever.get_relevant_documents(query)
-            )
+            return invoke(query) if invoke is not None else retriever.get_relevant_documents(query)
         except Exception as e:
             if self.logger:
                 self.logger.error("error retrieving documents: %s", e)
             return []
 
     def _generate_answer(
-        self, question: str, query: str, documents: List, context: Dict[str, Any]
-    ) -> Tuple[str, str, float, float]:
+        self, question: str, query: str, documents: list, context: dict[str, Any]
+    ) -> tuple[str, str, float, float]:
         """Return (answer, source, confidence, cost) for one retrieval attempt."""
         docs_text = self._format_documents(documents)
         prompt = self._build_answer_prompt(question, docs_text, context)
@@ -619,9 +595,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                 HumanMessage(content=prompt),
             ]
             response = self.llm.invoke(messages)
-            answer_text = (
-                response.content if hasattr(response, "content") else str(response)
-            )
+            answer_text = response.content if hasattr(response, "content") else str(response)
 
             if hasattr(response, "response_metadata"):
                 metadata = response.response_metadata
@@ -643,21 +617,17 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
         cost = self.cost_tracker.get_last_cost()
         return answer, source, confidence, cost
 
-    def _format_documents(self, documents: List) -> str:
+    def _format_documents(self, documents: list) -> str:
         formatted = []
         for i, doc in enumerate(documents, 1):
             content = doc.page_content if hasattr(doc, "page_content") else str(doc)
             source = (
-                doc.metadata.get("source", "Unknown")
-                if hasattr(doc, "metadata")
-                else "Unknown"
+                doc.metadata.get("source", "Unknown") if hasattr(doc, "metadata") else "Unknown"
             )
             formatted.append(f"Document {i} (from {source}):\n{content}\n")
         return "\n".join(formatted)
 
-    def _build_answer_prompt(
-        self, question: str, docs_text: str, context: Dict[str, Any]
-    ) -> str:
+    def _build_answer_prompt(self, question: str, docs_text: str, context: dict[str, Any]) -> str:
         context_str = ""
         if context:
             context_str = f"\n\nContext: {json.dumps(context, indent=2)}\n"
@@ -672,7 +642,7 @@ Documents:
 Provide a clear, concise answer. If the answer is not in the documents, respond with "Not found".
 Return your answer in JSON format: {{"answer": "...", "source": "..."}}"""
 
-    def _parse_answer(self, answer_text: str) -> Tuple[str, str]:
+    def _parse_answer(self, answer_text: str) -> tuple[str, str]:
         """Extract the answer field from JSON, falling back to raw text."""
         json_match = re.search(r"\{[^}]+\}", answer_text, re.DOTALL)
         if json_match:
@@ -684,8 +654,8 @@ Return your answer in JSON format: {{"answer": "...", "source": "..."}}"""
 
         return answer_text, ""
 
-    def _build_search_kwargs(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        kwargs: Dict[str, Any] = {"k": 5}
+    def _build_search_kwargs(self, context: dict[str, Any]) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {"k": 5}
 
         if hasattr(self.vector_store, "filter"):
             filters = {}

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
 
 from langchain_core.documents import Document
 
 
-def _parse_int(val: Optional[object]) -> Optional[int]:
+def _parse_int(val: object | None) -> int | None:
     if val is None:
         return None
     try:
@@ -34,7 +34,7 @@ class OverlappingContextStitcher:
         self.source_key = source_key
         self.separator = separator
 
-    def stitch(self, documents: Sequence[Document]) -> List[Document]:
+    def stitch(self, documents: Sequence[Document]) -> list[Document]:
         if not documents:
             return []
 
@@ -44,13 +44,13 @@ class OverlappingContextStitcher:
             idx = _parse_int((doc.metadata or {}).get(self.chunk_index_key))
             buckets.setdefault(src, []).append((idx, doc))
 
-        merged: List[Document] = []
+        merged: list[Document] = []
         for src, items in buckets.items():
             items.sort(key=lambda x: (x[0] is None, x[0] if x[0] is not None else 0))
-            run: List[Document] = []
-            last_idx: Optional[int] = None
+            run: list[Document] = []
+            last_idx: int | None = None
 
-            def flush_run(run_docs: List[Document]) -> None:
+            def flush_run(run_docs: list[Document]) -> None:
                 if not run_docs:
                     return
                 text = self.separator.join(d.page_content for d in run_docs)
@@ -86,7 +86,7 @@ class OverlappingContextStitcher:
         self,
         documents: Sequence[Document],
         neighbor_radius: int = 1,
-    ) -> List[Document]:
+    ) -> list[Document]:
         """
         Given retrieved docs with ``chunk_index`` + ``source``, add synthetic docs is not
         supported without the full corpus — returns input unchanged if indices missing.
@@ -106,7 +106,7 @@ class OverlappingContextStitcher:
                 return list(documents)
             by_src.setdefault(src, []).append((idx, d))
 
-        out: List[Document] = []
+        out: list[Document] = []
         for src, items in by_src.items():
             indices = sorted(set(i for i, _ in items))
             want = set()

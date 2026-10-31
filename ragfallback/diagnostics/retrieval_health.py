@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import random
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any
 
 from langchain_core.vectorstores import VectorStore
 
 
-def _retrieve_docs(vector_store: VectorStore, query: str, k: int) -> List[Any]:
+def _retrieve_docs(vector_store: VectorStore, query: str, k: int) -> list[Any]:
     r = vector_store.as_retriever(search_kwargs={"k": k})
     invoke = getattr(r, "invoke", None)
     if invoke:
@@ -33,9 +34,9 @@ class RetrievalHealthReport:
     ok: bool
     cases_run: int
     mean_recall_at_k: float
-    per_query: List[Dict[str, Any]] = field(default_factory=list)
-    notes: List[str] = field(default_factory=list)
-    avg_latency_ms: Optional[float] = None
+    per_query: list[dict[str, Any]] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+    avg_latency_ms: float | None = None
 
     @property
     def hit_rate(self) -> float:
@@ -65,8 +66,8 @@ class RetrievalHealthCheck:
     def recall_at_k(
         self,
         retrieved: Sequence[Any],
-        gold_keys: Set[str],
-        k: Optional[int] = None,
+        gold_keys: set[str],
+        k: int | None = None,
     ) -> float:
         k = k if k is not None else self.k
         if not gold_keys:
@@ -78,8 +79,8 @@ class RetrievalHealthCheck:
     def run(
         self,
         vector_store: VectorStore,
-        cases: Sequence[Dict[str, Any]],
-        k: Optional[int] = None,
+        cases: Sequence[dict[str, Any]],
+        k: int | None = None,
         min_mean_recall: float = 0.8,
     ) -> RetrievalHealthReport:
         """
@@ -89,9 +90,9 @@ class RetrievalHealthCheck:
             cases = [{"query": "refund policy", "gold_keys": {"source:billing.md"}}]
         """
         k = k if k is not None else self.k
-        notes: List[str] = []
-        per_query: List[Dict[str, Any]] = []
-        scores: List[float] = []
+        notes: list[str] = []
+        per_query: list[dict[str, Any]] = []
+        scores: list[float] = []
 
         for i, case in enumerate(cases):
             q = case.get("query") or case.get("q")
@@ -110,9 +111,7 @@ class RetrievalHealthCheck:
                 continue
             r = self.recall_at_k(docs, gold, k=k)
             scores.append(r)
-            per_query.append(
-                {"query": q, "k": k, "recall": r, "n_retrieved": len(docs)}
-            )
+            per_query.append({"query": q, "k": k, "recall": r, "n_retrieved": len(docs)})
 
         mean = sum(scores) / len(scores) if scores else 0.0
         ok = bool(scores) and mean >= min_mean_recall
@@ -127,8 +126,8 @@ class RetrievalHealthCheck:
     def run_substring_probes(
         self,
         vector_store: VectorStore,
-        probes: Dict[str, str],
-        k: Optional[int] = None,
+        probes: dict[str, str],
+        k: int | None = None,
         min_mean_hit_rate: float = 0.8,
         case_sensitive: bool = False,
     ) -> RetrievalHealthReport:
@@ -137,11 +136,11 @@ class RetrievalHealthCheck:
         ``page_content`` contains the substring. Use for smoke tests without gold doc IDs.
         """
         k = k if k is not None else self.k
-        notes: List[str] = []
-        per_query: List[Dict[str, Any]] = []
-        scores: List[float] = []
+        notes: list[str] = []
+        per_query: list[dict[str, Any]] = []
+        scores: list[float] = []
 
-        latencies_ms: List[float] = []
+        latencies_ms: list[float] = []
         for q, needle in probes.items():
             if not q or not needle:
                 notes.append(f"skipped empty probe for query={q!r}")
@@ -184,9 +183,9 @@ class RetrievalHealthCheck:
         vector_store: VectorStore,
         documents: Sequence[Any],
         sample_size: int = 10,
-        k: Optional[int] = None,
+        k: int | None = None,
         min_mean_hit_rate: float = 0.5,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> RetrievalHealthReport:
         """
         Substring smoke probes from random document snippets (no manual gold labels).
@@ -202,7 +201,7 @@ class RetrievalHealthCheck:
         rng = random.Random(seed)
         rng.shuffle(docs)
         sample = docs[: min(sample_size, len(docs))]
-        probes: Dict[str, str] = {}
+        probes: dict[str, str] = {}
         for d in sample:
             text = (getattr(d, "page_content", "") or "").strip()
             if len(text) < 50:

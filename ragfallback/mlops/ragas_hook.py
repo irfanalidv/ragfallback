@@ -7,7 +7,7 @@ import functools
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from ragfallback.evaluation.rag_evaluator import RAGEvaluator, RAGScore
 
@@ -25,7 +25,7 @@ class RagasReport:
     n_samples: int
     fallback_mode: bool
     timestamp: datetime
-    raw: Dict[str, Any]
+    raw: dict[str, Any]
 
 
 class RagasHook:
@@ -53,7 +53,7 @@ class RagasHook:
             )
         self._fallback_evaluator = RAGEvaluator(llm=llm)
 
-    def _to_ragas_dataset(self, samples: List[Dict[str, Any]]) -> Any:
+    def _to_ragas_dataset(self, samples: list[dict[str, Any]]) -> Any:
         """Build Ragas EvaluationDataset from dict samples."""
         try:
             from ragas import EvaluationDataset
@@ -65,7 +65,7 @@ class RagasHook:
         except ImportError as exc:
             raise RuntimeError("ragas dataset types unavailable") from exc
 
-        sts: List[Any] = []
+        sts: list[Any] = []
         for s in samples:
             ctx = s.get("contexts")
             if ctx is None:
@@ -85,9 +85,9 @@ class RagasHook:
             )
         return EvaluationDataset(samples=sts)
 
-    def _fallback_evaluate(self, samples: List[Dict[str, Any]]) -> RagasReport:
+    def _fallback_evaluate(self, samples: list[dict[str, Any]]) -> RagasReport:
         """Average RAGScore fields into a Ragas-shaped report."""
-        batch: List[Dict[str, Any]] = []
+        batch: list[dict[str, Any]] = []
         for s in samples:
             ctx = s.get("contexts")
             if ctx is None:
@@ -100,14 +100,12 @@ class RagasHook:
                     "ground_truth": s.get("ground_truth") or s.get("reference"),
                 }
             )
-        scores: List[RAGScore] = self._fallback_evaluator.evaluate_batch(batch)
+        scores: list[RAGScore] = self._fallback_evaluator.evaluate_batch(batch)
         n = len(scores) or 1
         faith = sum(s.faithfulness_score for s in scores) / n
         ans_rel = sum(s.answer_relevance for s in scores) / n
         ctx_prec = sum(s.context_precision for s in scores) / n
-        ctx_rec_vals = [
-            (s.recall_at_k if s.recall_at_k is not None else 0.0) for s in scores
-        ]
+        ctx_rec_vals = [(s.recall_at_k if s.recall_at_k is not None else 0.0) for s in scores]
         ctx_rec = sum(ctx_rec_vals) / n
         return RagasReport(
             faithfulness=faith,
@@ -120,7 +118,7 @@ class RagasHook:
             raw={},
         )
 
-    def evaluate_sync(self, samples: List[Dict[str, Any]]) -> RagasReport:
+    def evaluate_sync(self, samples: list[dict[str, Any]]) -> RagasReport:
         """Evaluate samples with Ragas or heuristic fallback."""
         if not samples:
             return RagasReport(
@@ -167,7 +165,7 @@ class RagasHook:
                 llm=self.llm,
                 embeddings=self.embeddings,
             )
-            raw_dict: Dict[str, Any] = {}
+            raw_dict: dict[str, Any] = {}
             faith = ans_rel = ctx_p = ctx_r = 0.0
             try:
                 pdf = result.to_pandas()
@@ -203,9 +201,7 @@ class RagasHook:
             logger.warning("ragas evaluation failed, using fallback: %s", exc)
             return self._fallback_evaluate(samples)
 
-    async def evaluate_async(self, samples: List[Dict[str, Any]]) -> RagasReport:
+    async def evaluate_async(self, samples: list[dict[str, Any]]) -> RagasReport:
         """Run :meth:`evaluate_sync` in a thread pool."""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None, functools.partial(self.evaluate_sync, samples)
-        )
+        return await loop.run_in_executor(None, functools.partial(self.evaluate_sync, samples))

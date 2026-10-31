@@ -22,9 +22,7 @@ def _doc(text: str) -> Document:
 def _make_dense_store(pairs: list[tuple[str, float]]) -> MagicMock:
     """Return a mock vector store whose similarity_search_with_score returns *pairs*."""
     store = MagicMock()
-    store.similarity_search_with_score.return_value = [
-        (_doc(text), score) for text, score in pairs
-    ]
+    store.similarity_search_with_score.return_value = [(_doc(text), score) for text, score in pairs]
     return store
 
 
@@ -134,9 +132,7 @@ def test_from_documents_raises_import_error_without_rank_bm25() -> None:
             "langchain_community.retrievers.BM25Retriever.from_documents",
             side_effect=ImportError("no module named rank_bm25"),
         ):
-            with pytest.raises(
-                ImportError, match="pip install ragfallback\\[hybrid\\]"
-            ):
+            with pytest.raises(ImportError, match="pip install ragfallback\\[hybrid\\]"):
                 SmartThresholdHybridRetriever.from_documents(docs, vectorstore=store)
 
 
@@ -203,9 +199,7 @@ def test_failover_min_results_threshold() -> None:
     fallback = _make_retriever_with_invoke(["fallback a", "fallback b"])
     fb = FailoverRetriever(primary=primary, fallback=fallback, min_results=2)
     docs = fb.invoke("query")
-    assert all(
-        d.metadata["ragfallback_retrieval_source"] == "secondary_failover" for d in docs
-    )
+    assert all(d.metadata["ragfallback_retrieval_source"] == "secondary_failover" for d in docs)
 
 
 # ---------------------------------------------------------------------------

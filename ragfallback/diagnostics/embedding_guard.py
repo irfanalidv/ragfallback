@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
 
 from langchain_core.embeddings import Embeddings
 
 from ragfallback.exceptions import EmbeddingDimensionError
 
 
-def _vector_is_sane(vec: List[float], min_norm: float = 1e-10) -> bool:
+def _vector_is_sane(vec: list[float], min_norm: float = 1e-10) -> bool:
     """Return False if the vector is empty, contains NaN/Inf, or has near-zero norm."""
     if not vec:
         return False
@@ -26,7 +26,7 @@ def _vector_is_sane(vec: List[float], min_norm: float = 1e-10) -> bool:
 class EmbeddingGuardReport:
     ok: bool
     observed_dim: int
-    expected_dim: Optional[int]
+    expected_dim: int | None
     message: str
 
     def raise_if_failed(self) -> None:
@@ -41,7 +41,7 @@ class EmbeddingGuard:
     collection dimension (e.g. Chroma collection metadata). Surfaces clear errors before ingest.
     """
 
-    def __init__(self, expected_dim: Optional[int] = None):
+    def __init__(self, expected_dim: int | None = None):
         self.expected_dim = expected_dim
 
     def probe_dimension(
@@ -59,7 +59,7 @@ class EmbeddingGuard:
     def validate(
         self,
         embeddings: Embeddings,
-        expected_dim: Optional[int] = None,
+        expected_dim: int | None = None,
         sample_text: str = "__ragfallback_embedding_dim_probe__",
     ) -> EmbeddingGuardReport:
         exp = expected_dim if expected_dim is not None else self.expected_dim
@@ -77,9 +77,7 @@ class EmbeddingGuard:
                 f"collection/index expects {exp}. Use the same embedder as at index "
                 f"build time, or rebuild the collection with the new model."
             )
-            return EmbeddingGuardReport(
-                ok=False, observed_dim=dim, expected_dim=exp, message=msg
-            )
+            return EmbeddingGuardReport(ok=False, observed_dim=dim, expected_dim=exp, message=msg)
         return EmbeddingGuardReport(
             ok=True,
             observed_dim=dim,
@@ -91,7 +89,7 @@ class EmbeddingGuard:
         self,
         embeddings: Embeddings,
         texts: Sequence[str],
-        expected_dim: Optional[int] = None,
+        expected_dim: int | None = None,
     ) -> EmbeddingGuardReport:
         """Ensure ``embed_documents`` returns consistent row width (first batch only)."""
         exp = expected_dim if expected_dim is not None else self.expected_dim
@@ -132,9 +130,7 @@ class EmbeddingGuard:
                 f"embed_documents width {dim} != expected collection dimension {exp}. "
                 "Rebuild the index or align the embedding model."
             )
-            return EmbeddingGuardReport(
-                ok=False, observed_dim=dim, expected_dim=exp, message=msg
-            )
+            return EmbeddingGuardReport(ok=False, observed_dim=dim, expected_dim=exp, message=msg)
         return EmbeddingGuardReport(
             ok=True,
             observed_dim=dim,
@@ -145,7 +141,7 @@ class EmbeddingGuard:
     @staticmethod
     def validate_raw_vectors(
         rows: Sequence[Sequence[float]],
-        expected_dim: Optional[int] = None,
+        expected_dim: int | None = None,
     ) -> EmbeddingGuardReport:
         """
         Validate pre-computed embedding rows (e.g. from a custom pipeline) before upsert.
@@ -179,9 +175,7 @@ class EmbeddingGuard:
                 ok=False,
                 observed_dim=dim,
                 expected_dim=expected_dim,
-                message=(
-                    f"Vector width {dim} does not match expected dimension {expected_dim}."
-                ),
+                message=(f"Vector width {dim} does not match expected dimension {expected_dim}."),
             )
         return EmbeddingGuardReport(
             ok=True,

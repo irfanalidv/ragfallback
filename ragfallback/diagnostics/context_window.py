@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Tuple
 
 try:
     import numpy as np
@@ -32,7 +32,7 @@ CONTEXT_WINDOW_TOKEN_PRESETS = {
 def _estimate_tokens(
     text: str,
     chars_per_token: float = 4.0,
-    encoding_name: Optional[str] = None,
+    encoding_name: str | None = None,
 ) -> int:
     if not text:
         return 0
@@ -47,7 +47,7 @@ def _estimate_tokens(
     return max(1, int(len(text) / chars_per_token))
 
 
-def _cosine(a: List[float], b: List[float]) -> float:
+def _cosine(a: list[float], b: list[float]) -> float:
     if np is None:
         # pure Python fallback
         dot = sum(x * y for x, y in zip(a, b))
@@ -70,7 +70,7 @@ class ContextWindowReport:
     used_tokens: int
     n_selected: int
     n_dropped: int
-    dropped_reasons: List[str] = field(default_factory=list)
+    dropped_reasons: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
         pct = (self.used_tokens / self.budget_tokens * 100) if self.budget_tokens else 0
@@ -91,7 +91,7 @@ class ContextWindowGuard:
         max_context_tokens: int = 6000,
         chars_per_token: float = 4.0,
         separator_tokens: int = 4,
-        tiktoken_model: Optional[str] = None,
+        tiktoken_model: str | None = None,
     ):
         self.max_context_tokens = max_context_tokens
         self.chars_per_token = chars_per_token
@@ -106,7 +106,7 @@ class ContextWindowGuard:
         reserve_ratio: float = 0.12,
         chars_per_token: float = 4.0,
         separator_tokens: int = 4,
-    ) -> "ContextWindowGuard":
+    ) -> ContextWindowGuard:
         """
         Pick a conservative document budget from :data:`CONTEXT_WINDOW_TOKEN_PRESETS`.
         ``reserve_ratio`` reserves capacity for system prompt + user question + completion.
@@ -134,7 +134,7 @@ class ContextWindowGuard:
         embeddings: Embeddings,
         *,
         lost_in_middle: bool = False,
-    ) -> Tuple[List[Document], ContextWindowReport]:
+    ) -> tuple[list[Document], ContextWindowReport]:
         if not documents:
             return [], ContextWindowReport(
                 budget_tokens=self.max_context_tokens,
@@ -145,16 +145,16 @@ class ContextWindowGuard:
             )
 
         q_vec = embeddings.embed_query(query)
-        scored: List[Tuple[float, Document]] = []
+        scored: list[tuple[float, Document]] = []
         for doc in documents:
             text = doc.page_content or ""
             d_vec = embeddings.embed_query(text[:2000])
             scored.append((_cosine(q_vec, d_vec), doc))
         scored.sort(key=lambda x: -x[0])
 
-        selected: List[Document] = []
+        selected: list[Document] = []
         used = 0
-        reasons: List[str] = []
+        reasons: list[str] = []
         for score, doc in scored:
             t = _estimate_tokens(
                 doc.page_content or "",

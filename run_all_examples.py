@@ -4,7 +4,6 @@ Run All Examples - Comprehensive Test Suite
 This script runs all example files to verify they work correctly.
 """
 
-import importlib.util
 import subprocess
 import sys
 from pathlib import Path
@@ -13,13 +12,13 @@ from pathlib import Path
 def run_example(example_path):
     """Run a single example file."""
     example_name = example_path.name
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"Running: {example_name}")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     try:
         # Check if file has main guard
-        with open(example_path, "r") as f:
+        with open(example_path) as f:
             content = f.read()
 
         if 'if __name__ == "__main__":' not in content:
@@ -55,13 +54,12 @@ def run_example(example_path):
                     for line in lines:
                         print(f"   {line}")
             return True
-        else:
-            print(f"❌ {example_name} failed with return code {result.returncode}")
-            if result.stderr:
-                print("   Error output:")
-                for line in result.stderr.strip().split("\n")[:10]:
-                    print(f"   {line}")
-            return False
+        print(f"❌ {example_name} failed with return code {result.returncode}")
+        if result.stderr:
+            print("   Error output:")
+            for line in result.stderr.strip().split("\n")[:10]:
+                print(f"   {line}")
+        return False
 
     except subprocess.TimeoutExpired:
         print(f"⏱️  {example_name} timed out (may be waiting for user input)")
@@ -136,12 +134,9 @@ def run_all_examples():
     if passed == total:
         print("\n🎉 All examples ran successfully!")
         return 0
-    else:
-        print(
-            f"\n⚠️  {total - passed} example(s) failed (may require API keys or services)"
-        )
-        print("   Check individual outputs above for details")
-        return 1
+    print(f"\n⚠️  {total - passed} example(s) failed (may require API keys or services)")
+    print("   Check individual outputs above for details")
+    return 1
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ import hashlib
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 # Allow running directly from repo root without pip install -e .
 _repo_root = Path(__file__).resolve().parent.parent
@@ -34,7 +34,7 @@ def _doc_id(text: str, prefix: str = "doc") -> str:
 
 def build_squad_samples(
     n: int = 75,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Load SQuAD validation split.
 
@@ -53,9 +53,9 @@ def build_squad_samples(
     ds = load_dataset("rajpurkar/squad", split="validation")
 
     # Build passage registry: context_text → doc_id
-    passage_registry: Dict[str, str] = {}
-    samples: List[Dict[str, Any]] = []
-    docs_meta: List[Dict[str, Any]] = []
+    passage_registry: dict[str, str] = {}
+    samples: list[dict[str, Any]] = []
+    docs_meta: list[dict[str, Any]] = []
 
     # We need good samples: has an answer, answer is in context, not too short
     for row in ds:
@@ -108,7 +108,7 @@ def build_squad_samples(
 
 def build_sciq_samples(
     n: int = 25,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Load SciQ test split — science domain, harder than SQuAD.
 
@@ -123,8 +123,8 @@ def build_sciq_samples(
     print("  Downloading SciQ test split...")
     ds = load_dataset("allenai/sciq", split="test")
 
-    samples: List[Dict[str, Any]] = []
-    docs_meta: List[Dict[str, Any]] = []
+    samples: list[dict[str, Any]] = []
+    docs_meta: list[dict[str, Any]] = []
 
     for row in ds:
         if len(samples) >= n:
@@ -164,7 +164,7 @@ def build_sciq_samples(
     return samples, docs_meta
 
 
-def write_dataset(samples: List[Dict[str, Any]], path: Path) -> None:
+def write_dataset(samples: list[dict[str, Any]], path: Path) -> None:
     """Write samples to JSON file."""
     # Remove metadata key from final output (GoldenRunner doesn't need it)
     clean = []
@@ -180,7 +180,7 @@ def write_dataset(samples: List[Dict[str, Any]], path: Path) -> None:
     print(f"  Written: {path} ({len(clean)} samples)")
 
 
-def write_docs_registry(docs: List[Dict[str, Any]], path: Path) -> None:
+def write_docs_registry(docs: list[dict[str, Any]], path: Path) -> None:
     """Write passage registry — useful for building vector store from same data."""
     path.write_text(json.dumps(docs, indent=2, ensure_ascii=False))
     print(f"  Written: {path} ({len(docs)} passages)")

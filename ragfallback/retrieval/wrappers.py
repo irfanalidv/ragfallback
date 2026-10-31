@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
@@ -26,11 +26,7 @@ class RetrieverAsVectorStore:
         return self._retriever
 
     # Optional: some code paths call similarity_search directly — not supported here.
-    def similarity_search(
-        self, query: str, k: int = 4, **kwargs: Any
-    ) -> List[Document]:
+    def similarity_search(self, query: str, k: int = 4, **kwargs: Any) -> list[Document]:
         r = self._retriever
         invoke = getattr(r, "invoke", None)
-        return (
-            invoke(query) if invoke is not None else r.get_relevant_documents(query)
-        )[:k]
+        return (invoke(query) if invoke is not None else r.get_relevant_documents(query))[:k]

@@ -55,9 +55,7 @@ def test_full_retrieval_workflow(real_llm, real_embeddings, real_vector_store):
     assert report["total_cost"] >= 0.0
 
 
-def test_query_variations_strategy_integration(
-    real_llm, real_vector_store, real_embeddings
-):
+def test_query_variations_strategy_integration(real_llm, real_vector_store, real_embeddings):
     """Test query variations strategy with real LLM and vector store."""
     strategy = QueryVariationsStrategy(num_variations=2, include_original=True)
 

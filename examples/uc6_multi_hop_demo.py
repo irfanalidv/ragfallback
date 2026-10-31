@@ -127,9 +127,7 @@ def main() -> None:
     print("-" * 60)
     print("FallbackStrategy contract — generate_queries(attempt=2):")
     mock_decompose_llm = _make_mock_llm()  # fresh responses
-    sub_qs = strategy.generate_queries(
-        question, context={}, attempt=2, llm=mock_decompose_llm
-    )
+    sub_qs = strategy.generate_queries(question, context={}, attempt=2, llm=mock_decompose_llm)
     for i, q in enumerate(sub_qs, 1):
         print(f"  Sub-question {i}: {q}")
 

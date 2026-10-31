@@ -32,7 +32,7 @@ class MLflowLogger:
 
     def log_golden_report(
         self,
-        report: "GoldenReport",
+        report: GoldenReport,
         run_name: str,
         dataset: str = "unknown",
     ) -> None:
@@ -52,12 +52,8 @@ class MLflowLogger:
                 mlflow.log_param("timestamp", report.timestamp.isoformat())
                 mlflow.log_param("fallback_mode", report.ragas.fallback_mode)
                 mlflow.log_metric("faithfulness", float(report.ragas.faithfulness))
-                mlflow.log_metric(
-                    "answer_relevance", float(report.ragas.answer_relevance)
-                )
-                mlflow.log_metric(
-                    "context_precision", float(report.ragas.context_precision)
-                )
+                mlflow.log_metric("answer_relevance", float(report.ragas.answer_relevance))
+                mlflow.log_metric("context_precision", float(report.ragas.context_precision))
                 mlflow.log_metric("context_recall", float(report.ragas.context_recall))
                 mlflow.log_metric("recall_at_3", float(report.recall_at_3))
                 mlflow.log_metric("recall_at_5", float(report.recall_at_5))

@@ -17,10 +17,7 @@ import os
 import sys
 
 _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if (
-    os.path.isdir(os.path.join(_repo_root, "ragfallback"))
-    and _repo_root not in sys.path
-):
+if os.path.isdir(os.path.join(_repo_root, "ragfallback")) and _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
 _examples_dir = os.path.dirname(os.path.abspath(__file__))
@@ -66,10 +63,7 @@ def main() -> None:
                 )
             )
             seen.add(ctx)
-        if (
-            row.get("question")
-            and test_question == "What are the termination conditions?"
-        ):
+        if row.get("question") and test_question == "What are the termination conditions?":
             test_question = row["question"]
         if len(documents) >= 60:
             break
@@ -86,9 +80,7 @@ def main() -> None:
 
     checker = ChunkQualityChecker(min_chars=80)
     report = checker.check(documents)
-    print(
-        f"\nChunkQualityChecker: {report.n_chunks} clauses  Violations: {len(report.violations)}"
-    )
+    print(f"\nChunkQualityChecker: {report.n_chunks} clauses  Violations: {len(report.violations)}")
 
     import _kb_common
 

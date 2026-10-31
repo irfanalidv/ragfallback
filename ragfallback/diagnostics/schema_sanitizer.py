@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Sequence, Union
+from collections.abc import Sequence
+from typing import Any
 
 from langchain_core.documents import Document
 
 
-def _normalize_value(value: Any) -> Union[str, int, float, bool, None]:
+def _normalize_value(value: Any) -> str | int | float | bool | None:
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     if isinstance(value, bytes):
@@ -22,10 +23,10 @@ def _normalize_value(value: Any) -> Union[str, int, float, bool, None]:
 
 
 def sanitize_metadata(
-    metadata: Dict[str, Any],
-) -> Dict[str, Union[str, int, float, bool, None]]:
+    metadata: dict[str, Any],
+) -> dict[str, str | int | float | bool | None]:
     """Flatten nested structures so filters / JSON / caches see stable scalar metadata."""
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     for k, v in (metadata or {}).items():
         key = str(k)
         if isinstance(v, dict):
@@ -36,9 +37,9 @@ def sanitize_metadata(
     return out
 
 
-def sanitize_documents(documents: Sequence[Document]) -> List[Document]:
+def sanitize_documents(documents: Sequence[Document]) -> list[Document]:
     """Return new :class:`~langchain_core.documents.Document` instances with cleaned metadata."""
-    result: List[Document] = []
+    result: list[Document] = []
     for doc in documents:
         md = sanitize_metadata(dict(doc.metadata or {}))
         result.append(Document(page_content=doc.page_content or "", metadata=md))

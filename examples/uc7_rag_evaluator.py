@@ -66,9 +66,7 @@ def main() -> None:
         contexts_for_row: list[str] = []
         for ctx in ctx_list:
             if ctx and len(ctx) > 80:
-                docs.append(
-                    Document(page_content=ctx[:600], metadata={"source": "pubmed"})
-                )
+                docs.append(Document(page_content=ctx[:600], metadata={"source": "pubmed"}))
                 contexts_for_row.append(ctx[:600])
         if row.get("question") and row.get("long_answer") and contexts_for_row:
             probes.append(
@@ -95,9 +93,7 @@ def main() -> None:
     print("\nBuilding ChromaDB index from PubMed abstracts...")
     emb = _kb_common.get_embeddings()
     persist = Path(tempfile.mkdtemp(prefix="ragfallback_uc7_")) / "chroma"
-    vs = _kb_common.build_chroma_store(
-        docs, persist_directory=persist, collection_name="uc7"
-    )
+    vs = _kb_common.build_chroma_store(docs, persist_directory=persist, collection_name="uc7")
     retriever = vs.as_retriever(search_kwargs={"k": 4})
     print(f"  Indexed {len(docs)} abstract segments")
 
@@ -133,9 +129,7 @@ def main() -> None:
     avg_faith = sum(s.faithfulness_score for s in all_scores) / len(all_scores)
     avg_overall = sum(s.overall_score for s in all_scores) / len(all_scores)
 
-    print(
-        f"\n  {passed}/{len(all_scores)} answers passed quality threshold (overall >= 70%)"
-    )
+    print(f"\n  {passed}/{len(all_scores)} answers passed quality threshold (overall >= 70%)")
     print(f"  Avg recall@k     : {avg_recall:.1%}")
     print(f"  Avg faithfulness : {avg_faith:.1%}")
     print(f"  Avg overall      : {avg_overall:.1%}")
@@ -173,19 +167,13 @@ def main() -> None:
                 ),
             }
             print(f"  Diagnosis      : {explanations[weakest]}")
-        print(
-            "  → Action: improve retrieval (SmartThresholdHybridRetriever) or use LLM judge"
-        )
+        print("  → Action: improve retrieval (SmartThresholdHybridRetriever) or use LLM judge")
     else:
         print("\n  All examples passed! Try stricter thresholds or a harder dataset.")
 
     print("\n✅  UC-7 demo complete.")
-    print(
-        "    Dataset: PubMedQA (MIT) — https://huggingface.co/datasets/qiaojin/PubMedQA"
-    )
-    print(
-        "    For higher accuracy: pass llm=your_llm to RAGEvaluator() to enable LLM judge."
-    )
+    print("    Dataset: PubMedQA (MIT) — https://huggingface.co/datasets/qiaojin/PubMedQA")
+    print("    For higher accuracy: pass llm=your_llm to RAGEvaluator() to enable LLM judge.")
 
 
 if __name__ == "__main__":

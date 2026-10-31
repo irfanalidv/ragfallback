@@ -11,11 +11,11 @@ from ragfallback.evaluation.rag_evaluator import (
 )
 
 __all__ = [
-    "RAGScore",
-    "RAGEvaluator",
     "RAGEvalSummary",
+    "RAGEvaluator",
+    "RAGScore",
     "SimpleRAGReport",
-    "recall_at_k",
     "dcg_at_k",
     "ndcg_at_k",
+    "recall_at_k",
 ]

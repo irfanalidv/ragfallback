@@ -1,16 +1,14 @@
 """Factory functions for creating vector stores (open-source and paid)."""
 
-from typing import List, Optional
-
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
 
 
 def create_faiss_vector_store(
-    documents: List[Document],
+    documents: list[Document],
     embeddings: Embeddings,
-    persist_directory: Optional[str] = None,
+    persist_directory: str | None = None,
 ) -> VectorStore:
     """
     Create a FAISS vector store (open-source, runs locally, no API key needed).
@@ -50,9 +48,9 @@ def create_faiss_vector_store(
 
 
 def create_chroma_vector_store(
-    documents: List[Document],
+    documents: list[Document],
     embeddings: Embeddings,
-    persist_directory: Optional[str] = None,
+    persist_directory: str | None = None,
     collection_name: str = "ragfallback",
 ) -> VectorStore:
     """
@@ -81,11 +79,11 @@ def create_chroma_vector_store(
 
 
 def create_qdrant_vector_store(
-    documents: List[Document],
+    documents: list[Document],
     embeddings: Embeddings,
     collection_name: str = "ragfallback",
-    url: Optional[str] = None,
-    api_key: Optional[str] = None,
+    url: str | None = None,
+    api_key: str | None = None,
     prefer_grpc: bool = False,
 ) -> VectorStore:
     """
@@ -116,17 +114,15 @@ def create_qdrant_vector_store(
             collection_name=collection_name,
         )
     except ImportError:
-        raise ImportError(
-            "Qdrant not installed. Install with: pip install qdrant-client"
-        )
+        raise ImportError("Qdrant not installed. Install with: pip install qdrant-client")
 
 
 def create_pinecone_vector_store(
-    documents: List[Document],
+    documents: list[Document],
     embeddings: Embeddings,
     index_name: str = "ragfallback",
-    api_key: Optional[str] = None,
-    environment: Optional[str] = None,
+    api_key: str | None = None,
+    environment: str | None = None,
 ) -> VectorStore:
     """
     Create a Pinecone vector store (paid cloud service, requires API key).
@@ -152,6 +148,4 @@ def create_pinecone_vector_store(
             documents=documents, embedding=embeddings, index_name=index_name
         )
     except ImportError:
-        raise ImportError(
-            "Pinecone not installed. Install with: pip install pinecone-client"
-        )
+        raise ImportError("Pinecone not installed. Install with: pip install pinecone-client")

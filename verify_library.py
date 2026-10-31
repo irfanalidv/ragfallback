@@ -51,14 +51,7 @@ def _test_diagnostics():
     from ragfallback.diagnostics import (
         ChunkQualityChecker,
         ChunkQualityReport,
-        ContextWindowGuard,
-        EmbeddingGuard,
-        EmbeddingGuardReport,
-        EmbeddingQualityProbe,
-        EmbeddingQualityReport,
         OverlappingContextStitcher,
-        RetrievalHealthCheck,
-        StaleIndexDetector,
         sanitize_documents,
         sanitize_metadata,
     )
@@ -71,9 +64,7 @@ def _test_diagnostics():
     merged = stitcher.stitch(docs)
     assert isinstance(merged, list)
 
-    clean = sanitize_documents(
-        [Document(page_content="x", metadata={"tags": ["a", "b"]})]
-    )
+    clean = sanitize_documents([Document(page_content="x", metadata={"tags": ["a", "b"]})])
     assert isinstance(clean[0].metadata["tags"], str)
 
     clean_meta = sanitize_metadata({"key": [1, 2]})
@@ -98,11 +89,9 @@ def _test_retrieval():
 # ─── Test 4: ragfallback.strategies ──────────────────────────────────────────
 def _test_strategies():
     from ragfallback.strategies import (
-        FallbackStrategy,
         HopResult,
         MultiHopFallbackStrategy,
         MultiHopResult,
-        QueryVariationsStrategy,
     )
 
     hop = HopResult(
@@ -127,9 +116,7 @@ def _test_evaluation():
     score = ev.evaluate(
         question="What is Python?",
         answer="Python is a high-level programming language.",
-        contexts=[
-            "Python is a high-level programming language used for many purposes."
-        ],
+        contexts=["Python is a high-level programming language used for many purposes."],
         ground_truth="Python is a programming language.",
     )
     assert isinstance(score, RAGScore)
@@ -236,9 +223,7 @@ check(
     "ragfallback.tracking (CostTracker.record_tokens, MetricsCollector.record_success)",
     _test_tracking,
 )
-check(
-    "Factory + embeddings (create_open_source_embeddings → dim 384)", _test_embeddings
-)
+check("Factory + embeddings (create_open_source_embeddings → dim 384)", _test_embeddings)
 check("Example files syntax (compile all examples/*.py)", _test_example_syntax)
 check(
     "Version consistency (__init__.py matches installed package metadata)",

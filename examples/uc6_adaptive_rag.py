@@ -167,11 +167,9 @@ def main() -> None:
                 print(f"  → attempt {attempt}: '{query}...'  confidence={conf:.0%}")
 
         print(f"  Final answer : {(result.answer or 'Not found')[:120]}")
-        print(
-            f"  Succeeded at : attempt {result.attempts}  confidence={result.confidence:.0%}"
-        )
+        print(f"  Succeeded at : attempt {result.attempts}  confidence={result.confidence:.0%}")
         if result.cost == 0.0:
-            print(f"  Cost         : $0.0000 (mock LLM — no real inference)")
+            print("  Cost         : $0.0000 (mock LLM — no real inference)")
         else:
             print(f"  Cost         : ${result.cost:.4f}")
 

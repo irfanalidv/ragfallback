@@ -1,7 +1,7 @@
 """Answer confidence scoring."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import HumanMessage
@@ -31,9 +31,9 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
 
     def __init__(
         self,
-        llm: Optional[BaseLanguageModel] = None,
+        llm: BaseLanguageModel | None = None,
         method: str = "llm",
-        prompt_template: Optional[str] = None,
+        prompt_template: str | None = None,
     ):
         self.llm = llm
         self.method = method
@@ -44,8 +44,8 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
         self,
         question: str,
         answer: str,
-        documents: List,
-        context: Optional[Dict[str, Any]] = None,
+        documents: list,
+        context: dict[str, Any] | None = None,
     ) -> float:
         """
         Score answer confidence.
@@ -61,13 +61,12 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
         """
         if self.method == "llm" and self.llm:
             return self._score_with_llm(question, answer, documents)
-        elif self.method == "embedding_similarity":
+        if self.method == "embedding_similarity":
             return self._score_with_embedding(question, answer, documents)
-        else:
-            # Default: simple heuristic
-            return self._score_heuristic(question, answer, documents)
+        # Default: simple heuristic
+        return self._score_heuristic(question, answer, documents)
 
-    def _score_with_llm(self, question: str, answer: str, documents: List) -> float:
+    def _score_with_llm(self, question: str, answer: str, documents: list) -> float:
         """Score using LLM."""
         if not self.llm:
             return self._score_heuristic(question, answer, documents)
@@ -78,9 +77,7 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
 
         try:
             response = self.llm.invoke([HumanMessage(content=prompt)])
-            response_text = (
-                response.content if hasattr(response, "content") else str(response)
-            )
+            response_text = response.content if hasattr(response, "content") else str(response)
 
             # Extract number from response
             import re
@@ -95,9 +92,7 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
             self.logger.warning("LLM confidence scoring failed, using heuristic: %s", e)
             return self._score_heuristic(question, answer, documents)
 
-    def _score_with_embedding(
-        self, question: str, answer: str, documents: List
-    ) -> float:
+    def _score_with_embedding(self, question: str, answer: str, documents: list) -> float:
         """
         Score using embedding similarity.
 
@@ -112,7 +107,7 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
         # 3. Weight by document relevance to question
         return self._score_heuristic(question, answer, documents)
 
-    def _score_heuristic(self, question: str, answer: str, documents: List) -> float:
+    def _score_heuristic(self, question: str, answer: str, documents: list) -> float:
         """Simple heuristic-based scoring."""
         # Check for failure indicators
         failure_indicators = ["not found", "n/a", "x", "unknown", "unable to"]

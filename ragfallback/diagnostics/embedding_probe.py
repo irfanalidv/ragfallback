@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import List, Sequence
 
 try:
     import numpy as np
@@ -13,7 +13,7 @@ except ImportError:  # pragma: no cover
 from langchain_core.embeddings import Embeddings
 
 
-def _cosine_list(a: List[float], b: List[float]) -> float:
+def _cosine_list(a: list[float], b: list[float]) -> float:
     if np is None:
         dot = sum(x * y for x, y in zip(a, b))
         na = sum(x * x for x in a) ** 0.5
@@ -33,7 +33,7 @@ class EmbeddingQualityReport:
     ok: bool
     mean_top1_similarity: float
     spread: float
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
         return (
@@ -63,7 +63,7 @@ class EmbeddingQualityProbe:
         query: str,
         reference_snippets: Sequence[str],
     ) -> EmbeddingQualityReport:
-        warnings: List[str] = []
+        warnings: list[str] = []
         if not reference_snippets:
             return EmbeddingQualityReport(
                 ok=False,
@@ -73,7 +73,7 @@ class EmbeddingQualityProbe:
             )
 
         qv = embeddings.embed_query(query)
-        sims: List[float] = []
+        sims: list[float] = []
         for snip in reference_snippets:
             if not snip.strip():
                 continue

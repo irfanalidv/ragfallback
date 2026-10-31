@@ -28,9 +28,9 @@ from ragfallback.diagnostics.schema_sanitizer import (
 from ragfallback.diagnostics.stale_index import StaleIndexDetector, StaleIndexReport
 
 __all__ = [
+    "CONTEXT_WINDOW_TOKEN_PRESETS",
     "ChunkQualityChecker",
     "ChunkQualityReport",
-    "CONTEXT_WINDOW_TOKEN_PRESETS",
     "ContextWindowGuard",
     "ContextWindowReport",
     "EmbeddingGuard",
@@ -39,12 +39,12 @@ __all__ = [
     "EmbeddingQualityReport",
     "EmbeddingValidator",
     "EmbeddingValidatorReport",
-    "infer_vectorstore_embedding_dim",
     "OverlappingContextStitcher",
     "RetrievalHealthCheck",
     "RetrievalHealthReport",
-    "sanitize_documents",
-    "sanitize_metadata",
     "StaleIndexDetector",
     "StaleIndexReport",
+    "infer_vectorstore_embedding_dim",
+    "sanitize_documents",
+    "sanitize_metadata",
 ]

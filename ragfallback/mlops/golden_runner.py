@@ -7,10 +7,11 @@ import functools
 import json
 import logging
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set, Union
+from typing import Any
 
 import numpy as np
 
@@ -33,8 +34,8 @@ class GoldenReport:
     fallback_rate: float
     n_samples: int
     timestamp: datetime
-    per_sample: List[Dict[str, Any]]
-    cache_stats: Optional[Dict[str, Any]] = field(default=None)
+    per_sample: list[dict[str, Any]]
+    cache_stats: dict[str, Any] | None = field(default=None)
 
 
 class GoldenRunner:
@@ -44,8 +45,8 @@ class GoldenRunner:
         self,
         retriever: AdaptiveRAGRetriever,
         ragas_hook: RagasHook,
-        dataset: Union[str, List[Dict[str, Any]]],
-        cache_monitor: Optional[Any] = None,
+        dataset: str | list[dict[str, Any]],
+        cache_monitor: Any | None = None,
     ) -> None:
         """Load JSON path or use in-memory list; optionally wrap retriever with CacheMonitor.
 
@@ -71,7 +72,7 @@ class GoldenRunner:
         if not isinstance(self._dataset, list):
             raise ValueError("Golden dataset must be a JSON array or list of dicts")
 
-    def _retrieve_docs(self, query: str, k: int = 5) -> List[Any]:
+    def _retrieve_docs(self, query: str, k: int = 5) -> list[Any]:
         """Fetch top-``k`` documents for context and id extraction."""
         r = self.retriever.vector_store.as_retriever(search_kwargs={"k": k})
         if self._cache_monitor is not None:
@@ -81,7 +82,7 @@ class GoldenRunner:
             return list(invoke(query) or [])
         return list(r.get_relevant_documents(query))
 
-    async def _aretrieve_docs(self, query: str, k: int = 5) -> List[Any]:
+    async def _aretrieve_docs(self, query: str, k: int = 5) -> list[Any]:
         """Async fetch of top-``k`` documents."""
         r = self.retriever.vector_store.as_retriever(search_kwargs={"k": k})
         if self._cache_monitor is not None:
@@ -92,14 +93,12 @@ class GoldenRunner:
         loop = asyncio.get_event_loop()
         invoke = getattr(r, "invoke", None)
         if invoke is not None:
-            return list(
-                await loop.run_in_executor(None, functools.partial(invoke, query)) or []
-            )
+            return list(await loop.run_in_executor(None, functools.partial(invoke, query)) or [])
         return []
 
-    def _doc_ids(self, docs: Sequence[Any]) -> List[str]:
+    def _doc_ids(self, docs: Sequence[Any]) -> list[str]:
         """Stable string ids from document metadata or content hash."""
-        out: List[str] = []
+        out: list[str] = []
         for d in docs:
             md = getattr(d, "metadata", None) or {}
             rid = md.get("id") or md.get("doc_id") or md.get("source")
@@ -110,11 +109,11 @@ class GoldenRunner:
                 out.append(str(hash(pc)))
         return out
 
-    def _contexts_from_docs(self, docs: Sequence[Any]) -> List[str]:
+    def _contexts_from_docs(self, docs: Sequence[Any]) -> list[str]:
         """Plain-text contexts for evaluation."""
         return [(getattr(d, "page_content", str(d)) or "") for d in docs]
 
-    def _ids_from_intermediate(self, result: QueryResult) -> List[str]:
+    def _ids_from_intermediate(self, result: QueryResult) -> list[str]:
         """Best-effort doc id list from intermediate steps (often empty)."""
         steps = result.intermediate_steps or []
         for step in reversed(steps):
@@ -124,16 +123,14 @@ class GoldenRunner:
                 return [str(x) for x in step["doc_ids"]]
         return []
 
-    def _run_single(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    def _run_single(self, item: dict[str, Any]) -> dict[str, Any]:
         """Run one golden row synchronously and return diagnostics."""
         query = item["query"]
         gt = item.get("ground_truth", "")
-        rel_ids: Set[str] = set(str(x) for x in item.get("relevant_doc_ids", []))
+        rel_ids: set[str] = set(str(x) for x in item.get("relevant_doc_ids", []))
 
         t0 = time.perf_counter()
-        result = self.retriever.query_with_fallback(
-            query, return_intermediate_steps=True
-        )
+        result = self.retriever.query_with_fallback(query, return_intermediate_steps=True)
         latency_ms = (time.perf_counter() - t0) * 1000.0
 
         docs = self._retrieve_docs(query, k=5)
@@ -158,11 +155,11 @@ class GoldenRunner:
             "recall_at_5": r5,
         }
 
-    async def _arun_single(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    async def _arun_single(self, item: dict[str, Any]) -> dict[str, Any]:
         """Run one golden row natively async using :meth:`aquery_with_fallback`."""
         query = item["query"]
         gt = item.get("ground_truth", "")
-        rel_ids: Set[str] = set(str(x) for x in item.get("relevant_doc_ids", []))
+        rel_ids: set[str] = set(str(x) for x in item.get("relevant_doc_ids", []))
 
         try:
             t0 = time.perf_counter()
@@ -203,7 +200,7 @@ class GoldenRunner:
 
     def _build_report(
         self,
-        per_sample: List[Dict[str, Any]],
+        per_sample: list[dict[str, Any]],
         ragas_report: RagasReport,
     ) -> GoldenReport:
         """Aggregate latencies and recall means into a GoldenReport."""
@@ -215,9 +212,7 @@ class GoldenRunner:
         p95 = float(np.percentile(latencies, 95)) if latencies else 0.0
         mean_lat = sum(latencies) / len(latencies) if latencies else 0.0
         cache_stats = (
-            self._cache_monitor.get_stats().as_dict()
-            if self._cache_monitor is not None
-            else None
+            self._cache_monitor.get_stats().as_dict() if self._cache_monitor is not None else None
         )
         return GoldenReport(
             ragas=ragas_report,
@@ -234,7 +229,7 @@ class GoldenRunner:
 
     def run(self) -> GoldenReport:
         """Synchronously evaluate the full golden set."""
-        per_sample: List[Dict[str, Any]] = []
+        per_sample: list[dict[str, Any]] = []
         for item in self._dataset:
             per_sample.append(self._run_single(item))
         ragas_samples = [

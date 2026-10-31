@@ -27,7 +27,6 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import List
 
 # Allow running directly from repo root without pip install -e .
 _repo_root = Path(__file__).resolve().parent.parent
@@ -61,7 +60,7 @@ def info(msg: str) -> None:
 # ─── STEP 1: CHECK GOLDEN DATASET ─────────────────────────────────────────────
 
 
-def load_golden_dataset(path: Path) -> List[dict]:
+def load_golden_dataset(path: Path) -> list[dict]:
     section("STEP 1 — Load golden dataset")
     if not path.exists():
         print(f"\n  golden_qa.json not found at: {path}")
@@ -151,7 +150,7 @@ def build_retriever(store, emb):
 # ─── STEP 4: RUN GOLDEN RUNNER ────────────────────────────────────────────────
 
 
-async def run_golden_runner(retriever, samples: List[dict], emb):
+async def run_golden_runner(retriever, samples: list[dict], emb):
     section("STEP 4 — GoldenRunner (async, P95 latency + RAGAS eval)")
 
     from ragfallback.mlops import GoldenRunner, RagasHook
@@ -251,7 +250,7 @@ def run_mlflow_logging(report):
 # ─── STEP 7: QUERY SIMULATION ─────────────────────────────────────────────────
 
 
-def run_query_simulation(samples: List[dict]):
+def run_query_simulation(samples: list[dict]):
     section("STEP 7 — QuerySimulator (adversarial query mix)")
 
     from ragfallback.mlops import QuerySimulator

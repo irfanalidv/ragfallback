@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Optional
+from typing import Any
 
 from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
@@ -38,13 +38,13 @@ class FailoverRetriever(BaseRetriever):
 
     primary: Any
     # ``fallback`` is the canonical name; ``secondary`` is kept for backward compat.
-    fallback: Optional[Any] = None
-    secondary: Optional[Any] = None
+    fallback: Any | None = None
+    secondary: Any | None = None
     min_results: int = 1
     log_errors: bool = True
 
     @model_validator(mode="after")
-    def _resolve_fallback_retriever(self) -> "FailoverRetriever":
+    def _resolve_fallback_retriever(self) -> FailoverRetriever:
         """Ensure at least one of ``fallback`` or ``secondary`` is set, and sync them."""
         if self.fallback is not None and self.secondary is None:
             object.__setattr__(self, "secondary", self.fallback)
@@ -62,7 +62,7 @@ class FailoverRetriever(BaseRetriever):
         """Return the active fallback retriever (``fallback`` takes precedence)."""
         return self.fallback if self.fallback is not None else self.secondary
 
-    def _invoke_retriever(self, retriever: Any, query: str) -> List[Document]:
+    def _invoke_retriever(self, retriever: Any, query: str) -> list[Document]:
         """Call *retriever* with *query*, preferring ``invoke`` over the legacy method."""
         invoke = getattr(retriever, "invoke", None)
         if invoke is not None:
@@ -75,7 +75,7 @@ class FailoverRetriever(BaseRetriever):
         query: str,
         *,
         run_manager: CallbackManagerForRetrieverRun,
-    ) -> List[Document]:
+    ) -> list[Document]:
         """Retrieve documents, falling over to the fallback when necessary.
 
         Args:
@@ -111,9 +111,7 @@ class FailoverRetriever(BaseRetriever):
             )
         except Exception as exc:
             if self.log_errors:
-                logger.warning(
-                    "FailoverRetriever: primary raised — switching to fallback: %s", exc
-                )
+                logger.warning("FailoverRetriever: primary raised — switching to fallback: %s", exc)
 
         try:
             docs = self._invoke_retriever(self._effective_fallback, query)
