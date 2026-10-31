@@ -24,6 +24,16 @@ from ragfallback.tracking.metrics import MetricsCollector
 from ragfallback.utils.confidence_scorer import ConfidenceScorer
 
 
+def _llm_model_name(llm: Any) -> str:
+    """Model id for cost tracking. OpenAI/Anthropic chat models expose ``model_name``,
+    ChatMistralAI exposes ``model``; fall back to ``gpt-4`` (the conservative default)."""
+    for attr in ("model_name", "model"):
+        value = getattr(llm, attr, None)
+        if isinstance(value, str) and value:
+            return value
+    return "gpt-4"
+
+
 @dataclass
 class QueryResult:
     """Result of a RAG query with metadata."""
@@ -556,7 +566,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                     self.cost_tracker.record_tokens(
                         input_tokens=usage.get("prompt_tokens", 0),
                         output_tokens=usage.get("completion_tokens", 0),
-                        model=getattr(self.llm, "model_name", "gpt-4"),
+                        model=_llm_model_name(self.llm),
                     )
 
         answer, source = self._parse_answer(answer_text)
@@ -607,7 +617,7 @@ Return your answer in JSON format: {"answer": "...", "source": "..."}"""
                     self.cost_tracker.record_tokens(
                         input_tokens=usage.get("prompt_tokens", 0),
                         output_tokens=usage.get("completion_tokens", 0),
-                        model=getattr(self.llm, "model_name", "gpt-4"),
+                        model=_llm_model_name(self.llm),
                     )
 
         answer, source = self._parse_answer(answer_text)

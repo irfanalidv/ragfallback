@@ -16,25 +16,116 @@ class ModelPricing:
     output_cost_per_1M: float
 
 
+# Standard (non-batch, uncached) list prices in USD per 1M tokens, checked against the
+# providers' official pricing pages on PRICING_AS_OF:
+#   OpenAI     https://developers.openai.com/api/docs/pricing
+#   Anthropic  https://platform.claude.com/docs/en/about-claude/pricing
+#   Mistral    https://docs.mistral.ai/inference/pricing
+# Models with long-context tiers (OpenAI flagships above 272K tokens, Claude Haiku 5.5 above
+# 100K tokens) are listed at their short-context price. Prices change: pass ``pricing_config``
+# to override any entry.
+PRICING_AS_OF = "2026-10-31"
+
+
+def _p(model: str, input_per_1m: float, output_per_1m: float) -> tuple[str, ModelPricing]:
+    return model, ModelPricing(model, input_per_1m, output_per_1m)
+
+
+_DEFAULT_PRICING: dict[str, ModelPricing] = dict(
+    [
+        # OpenAI: current models
+        _p("gpt-6-astra", 10.0, 50.0),
+        _p("gpt-6.1-sol", 2.0, 10.0),
+        _p("gpt-6.1-terra", 1.0, 5.0),
+        _p("gpt-6-sol", 2.0, 10.0),
+        _p("gpt-6-luna", 0.10, 0.50),
+        _p("gpt-5.6-sol", 4.0, 20.0),
+        _p("gpt-5.6-terra", 2.0, 12.0),
+        _p("gpt-5.6-luna", 0.20, 1.20),
+        _p("gpt-5.5", 5.0, 30.0),
+        _p("gpt-5.5-pro", 30.0, 180.0),
+        _p("gpt-5.4", 2.50, 15.0),
+        _p("gpt-5.4-pro", 30.0, 180.0),
+        _p("gpt-5.4-mini", 0.75, 4.50),
+        _p("gpt-5.4-nano", 0.20, 1.25),
+        _p("gpt-5.3-codex", 1.75, 14.0),
+        _p("gpt-5.2", 1.75, 14.0),
+        _p("gpt-5.2-pro", 21.0, 168.0),
+        _p("gpt-5.1", 1.25, 10.0),
+        _p("gpt-5", 1.25, 10.0),
+        _p("gpt-5-mini", 0.25, 2.0),
+        _p("gpt-5-nano", 0.05, 0.40),
+        _p("gpt-5-pro", 15.0, 120.0),
+        _p("gpt-4.1", 2.0, 8.0),
+        _p("gpt-4.1-mini", 0.40, 1.60),
+        _p("gpt-4.1-nano", 0.10, 0.40),
+        _p("gpt-4o", 2.50, 10.0),
+        _p("gpt-4o-2024-05-13", 5.0, 15.0),
+        _p("gpt-4o-mini", 0.15, 0.60),
+        _p("o1", 15.0, 60.0),
+        _p("o1-pro", 150.0, 600.0),
+        _p("o3", 2.0, 8.0),
+        _p("o3-pro", 20.0, 80.0),
+        _p("o3-mini", 1.10, 4.40),
+        _p("o4-mini", 1.10, 4.40),
+        # OpenAI: legacy models
+        _p("gpt-4-turbo", 10.0, 30.0),
+        _p("gpt-4", 30.0, 60.0),
+        _p("gpt-3.5-turbo", 0.50, 1.50),
+        # Anthropic (API ids such as ``claude-opus-5-5``; dated ids match by prefix)
+        _p("claude-fable-5-1", 10.0, 50.0),
+        _p("claude-fable-5", 10.0, 50.0),
+        _p("claude-opus-5-5", 4.0, 20.0),
+        _p("claude-opus-5", 5.0, 25.0),
+        _p("claude-opus-4-8", 5.0, 25.0),
+        _p("claude-opus-4-7", 5.0, 25.0),
+        _p("claude-opus-4-6", 5.0, 25.0),
+        _p("claude-opus-4-5", 5.0, 25.0),
+        _p("claude-opus-4-1", 15.0, 75.0),
+        _p("claude-opus-4", 15.0, 75.0),
+        _p("claude-sonnet-5-5", 2.0, 10.0),
+        _p("claude-sonnet-5", 2.0, 10.0),
+        _p("claude-sonnet-4-6", 3.0, 15.0),
+        _p("claude-sonnet-4-5", 3.0, 15.0),
+        _p("claude-sonnet-4", 3.0, 15.0),
+        _p("claude-haiku-5-5", 0.10, 0.50),
+        _p("claude-haiku-4-5", 1.0, 5.0),
+        _p("claude-3-5-haiku", 0.80, 4.0),
+        # Retired Claude 3 models, kept at their last list price for old ledgers.
+        _p("claude-3-opus", 15.0, 75.0),
+        _p("claude-3-sonnet", 3.0, 15.0),
+        _p("claude-3-haiku", 0.25, 1.25),
+        # Mistral: family prefixes cover ``-latest`` aliases and dated ids, priced at the
+        # current generation (Large 4, Small 4, Ministral 3, Codestral 25.08).
+        _p("mistral-large", 0.70, 2.10),
+        _p("mistral-small", 0.15, 0.60),
+        _p("ministral-14b", 0.20, 0.20),
+        _p("ministral-8b", 0.15, 0.15),
+        _p("ministral-3b", 0.10, 0.10),
+        _p("codestral", 0.30, 0.90),
+        _p("mistral-embed", 0.10, 0.0),
+        _p("codestral-embed", 0.15, 0.0),
+        # OpenAI embeddings (input only)
+        _p("text-embedding-3-small", 0.02, 0.0),
+        _p("text-embedding-3-large", 0.13, 0.0),
+        _p("text-embedding-ada-002", 0.10, 0.0),
+    ]
+)
+
+
 class CostTracker:
     """Token cost ledger for a RAG session.
 
     Records spend per operation, enforces an optional budget ceiling, and
-    surfaces a report after the session. Pricing defaults cover the main
-    OpenAI and Anthropic model families; pass pricing_config to override.
+    surfaces a report after the session. The built-in table covers current and
+    legacy OpenAI, Anthropic and Mistral models (see ``PRICING_AS_OF``); pass
+    ``pricing_config`` to override or extend it. Unknown models are priced at
+    the ``gpt-4`` rate, which overestimates almost every current model, so
+    budgets fail safe.
     """
 
-    # Default pricing (per 1M tokens)
-    DEFAULT_PRICING: ClassVar[dict[str, ModelPricing]] = {
-        "gpt-4": ModelPricing("gpt-4", 30.0, 60.0),
-        "gpt-4-turbo": ModelPricing("gpt-4-turbo", 10.0, 30.0),
-        "gpt-3.5-turbo": ModelPricing("gpt-3.5-turbo", 0.5, 1.5),
-        "gpt-4o": ModelPricing("gpt-4o", 5.0, 15.0),
-        "gpt-4o-mini": ModelPricing("gpt-4o-mini", 0.15, 0.6),
-        "claude-3-opus": ModelPricing("claude-3-opus", 15.0, 75.0),
-        "claude-3-sonnet": ModelPricing("claude-3-sonnet", 3.0, 15.0),
-        "claude-3-haiku": ModelPricing("claude-3-haiku", 0.25, 1.25),
-    }
+    # Default pricing (USD per 1M tokens). See PRICING_AS_OF and the sources above.
+    DEFAULT_PRICING: ClassVar[dict[str, ModelPricing]] = _DEFAULT_PRICING
 
     def __init__(
         self,

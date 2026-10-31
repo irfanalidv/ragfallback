@@ -280,7 +280,7 @@ Main options:
 | `AdaptiveRAGRetriever` | `min_confidence` | `0.7` | Accept an answer at or above this confidence |
 | | `max_attempts` | `3` | Total retrieval + answer attempts across strategies |
 | | `fallback_strategies` | `[QueryVariationsStrategy()]` | Ordered strategies to try |
-| `CostTracker` | `budget`, `alert_threshold`, `pricing_config` | `None`, `0.8`, built-in table | USD budget, warning ratio, per-1M-token prices (prefix-matched model names) |
+| `CostTracker` | `budget`, `alert_threshold`, `pricing_config` | `None`, `0.8`, built-in table | USD budget, warning ratio, per-1M-token prices (prefix-matched model names). The built-in table covers OpenAI, Anthropic and Mistral list prices as of `ragfallback.tracking.cost_tracker.PRICING_AS_OF` (2026-10-31); unknown models are priced at the `gpt-4` rate so budgets fail safe |
 | `FailoverRetriever` | `min_results` | `1` | Fewer results than this from `primary` triggers the fallback |
 | `SmartThresholdHybridRetriever` | `score_mode`, `min_similarity` / `max_distance`, `fetch_k`, `final_k` | `"distance"`, `0.7` / `None`, `20`, `5` | How dense scores are thresholded before BM25 takes over |
 | `ContextWindowGuard` | `max_context_tokens` or `from_model_name(...)` | `6000` | Token budget for retrieved context |
@@ -490,7 +490,6 @@ Releases follow semantic versioning. Pin a version in production and read the [C
 - Embedding-similarity confidence scoring (the `embedding_similarity` method of `ConfidenceScorer` currently falls back to the heuristic).
 - Built-in cross-encoder option for `ReRankerGuard`.
 - Move vector-store factories off `langchain-community` (being sunset) to the standalone integration packages.
-- Refresh the default model pricing table in `CostTracker`.
 
 ## Contributing, security, citation, license
 

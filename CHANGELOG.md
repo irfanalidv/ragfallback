@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-10-31
+
+### Fixed
+- `CostTracker`'s built-in price table was out of date (for example `gpt-4o` at $5/$15 per 1M
+  tokens; the list price is $2.50/$10). It is now checked against the official OpenAI,
+  Anthropic and Mistral pricing pages, dated by `PRICING_AS_OF`, with the sources in the code.
+- Added current models: OpenAI GPT-6/5.x/5/4.1, o1/o3/o4-mini, embeddings; Claude Fable,
+  Opus, Sonnet and Haiku 4.x/5.x; Mistral Large, Small, Ministral, Codestral, embeddings.
+  Mistral entries are family prefixes, so `mistral-small-latest` and dated ids are priced.
+- `AdaptiveRAGRetriever` priced every Mistral call at the `gpt-4` fallback rate, because
+  `ChatMistralAI` exposes its model id as `model`, not `model_name`. Both are now read.
+
 ## [2.4.0] - 2026-10-31
 
 ### Fixed
