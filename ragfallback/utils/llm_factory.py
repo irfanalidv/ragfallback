@@ -4,6 +4,7 @@ import os
 
 from langchain_core.language_models import BaseLanguageModel
 
+from ragfallback._compat import secret
 from ragfallback.utils.env import load_env, mistral_config_from_env
 
 
@@ -194,7 +195,7 @@ def create_mistral_llm(
             "Mistral LLM requires langchain-mistralai. "
             "Install with: pip install langchain-mistralai"
         ) from e
-    return ChatMistralAI(model=mid, api_key=key, temperature=temperature)
+    return ChatMistralAI(model=mid, api_key=secret(key), temperature=temperature)
 
 
 def create_llm_from_env(
@@ -240,7 +241,7 @@ def create_openai_llm(
         from langchain_openai import ChatOpenAI
     except ImportError as e:
         raise ImportError("OpenAI not installed. Install with: pip install langchain-openai") from e
-    return ChatOpenAI(model=model, temperature=temperature, api_key=api_key)
+    return ChatOpenAI(model=model, temperature=temperature, api_key=secret(api_key))
 
 
 def create_anthropic_llm(
@@ -265,4 +266,4 @@ def create_anthropic_llm(
         raise ImportError(
             "Anthropic not installed. Install with: pip install langchain-anthropic"
         ) from e
-    return ChatAnthropic(model=model, temperature=temperature, api_key=api_key)
+    return ChatAnthropic(model=model, temperature=temperature, api_key=secret(api_key))

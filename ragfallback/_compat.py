@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+from pydantic import SecretStr
+
 
 def invoke_retriever(retriever: Any, query: str) -> list[Any]:
     """Run ``retriever`` on ``query`` and return a list of documents.
@@ -32,3 +34,8 @@ def content_hash(text: str) -> str:
     across processes.
     """
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def secret(value: str | None) -> SecretStr | None:
+    """Wrap an optional API key for LangChain clients, which type keys as ``SecretStr``."""
+    return SecretStr(value) if value else None

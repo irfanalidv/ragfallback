@@ -144,7 +144,7 @@ def test_llm_factories_pass_arguments(monkeypatch) -> None:
     _fake_module(monkeypatch, "langchain_mistralai", ChatMistralAI=_Recorder)
 
     assert llm_factory.create_openai_llm("gpt-4o-mini").kwargs["model"] == "gpt-4o-mini"
-    assert llm_factory.create_anthropic_llm(api_key="k").kwargs["api_key"] == "k"
+    assert llm_factory.create_anthropic_llm(api_key="k").kwargs["api_key"].get_secret_value() == "k"
     m = llm_factory.create_mistral_llm(api_key="k", load_dotenv=False)
     assert m.kwargs["model"] == "mistral-small-latest"
     emb = embedding_factory.create_openai_embeddings(model="text-embedding-3-small")

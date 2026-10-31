@@ -2,6 +2,8 @@
 
 from langchain_core.embeddings import Embeddings
 
+from ragfallback._compat import secret
+
 
 def create_open_source_embeddings(model_name: str = "all-MiniLM-L6-v2") -> Embeddings:
     """
@@ -78,7 +80,7 @@ def create_openai_embeddings(
         raise ImportError(
             "OpenAI embeddings not installed. Install with: pip install langchain-openai"
         ) from e
-    return OpenAIEmbeddings(model=model, api_key=api_key)
+    return OpenAIEmbeddings(model=model, api_key=secret(api_key))
 
 
 def create_anthropic_embeddings(api_key: str | None = None) -> Embeddings:
