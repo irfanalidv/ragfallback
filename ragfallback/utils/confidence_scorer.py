@@ -109,11 +109,13 @@ Return ONLY a number between 0.0 and 1.0, no explanation."""
 
     def _score_heuristic(self, question: str, answer: str, documents: list) -> float:
         """Simple heuristic-based scoring."""
-        # Check for failure indicators
-        failure_indicators = ["not found", "n/a", "x", "unknown", "unable to"]
-        answer_lower = answer.lower()
-
-        if any(indicator in answer_lower for indicator in failure_indicators):
+        # Failure indicators. Short placeholders ("x", "n/a", "unknown") only count when
+        # they are the whole answer; substring matching on "x" zeroed any answer that
+        # merely contained the letter (e.g. "Texas", "expires").
+        answer_lower = answer.lower().strip().strip(".")
+        if answer_lower in {"", "x", "n/a", "unknown"}:
+            return 0.0
+        if any(phrase in answer_lower for phrase in ("not found", "unable to")):
             return 0.0
 
         # Base score on document count and answer length

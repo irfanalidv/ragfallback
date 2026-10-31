@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 
@@ -21,3 +22,13 @@ def invoke_retriever(retriever: Any, query: str) -> list[Any]:
             f"{type(retriever).__name__} has neither invoke() nor get_relevant_documents()"
         )
     return list(legacy(query) or [])
+
+
+def content_hash(text: str) -> str:
+    """Process-stable short hash of ``text`` (16 hex chars of SHA-256).
+
+    Use this instead of the builtin ``hash()``, which is salted per interpreter run
+    (PYTHONHASHSEED) and therefore unusable for ids that are persisted or compared
+    across processes.
+    """
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]

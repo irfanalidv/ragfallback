@@ -15,7 +15,7 @@ from typing import Any
 
 import numpy as np
 
-from ragfallback._compat import invoke_retriever
+from ragfallback._compat import content_hash, invoke_retriever
 from ragfallback.core.adaptive_retriever import AdaptiveRAGRetriever, QueryResult
 from ragfallback.evaluation import recall_at_k
 from ragfallback.mlops.ragas_hook import RagasHook, RagasReport
@@ -104,7 +104,7 @@ class GoldenRunner:
                 out.append(str(rid))
             else:
                 pc = getattr(d, "page_content", str(d)) or ""
-                out.append(str(hash(pc)))
+                out.append(content_hash(pc))
         return out
 
     def _contexts_from_docs(self, docs: Sequence[Any]) -> list[str]:
@@ -159,13 +159,8 @@ class GoldenRunner:
         gt = item.get("ground_truth", "")
         rel_ids: set[str] = {str(x) for x in item.get("relevant_doc_ids", [])}
 
-        try:
-            t0 = time.perf_counter()
-            result = await self.retriever.aquery_with_fallback(
-                query, return_intermediate_steps=True
-            )
-            latency_ms = (time.perf_counter() - t0) * 1000.0
-        except AttributeError:
+        aquery = getattr(self.retriever, "aquery_with_fallback", None)
+        if aquery is None:
             logger.warning(
                 "retriever does not support aquery_with_fallback — "
                 "falling back to thread pool for query: %s",
@@ -173,6 +168,10 @@ class GoldenRunner:
             )
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, self._run_single, item)
+
+        t0 = time.perf_counter()
+        result = await aquery(query, return_intermediate_steps=True)
+        latency_ms = (time.perf_counter() - t0) * 1000.0
 
         docs = await self._aretrieve_docs(query, k=5)
         retrieved_ids = self._ids_from_intermediate(result)

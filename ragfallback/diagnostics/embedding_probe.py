@@ -89,12 +89,11 @@ class EmbeddingQualityProbe:
             )
 
         top1 = max(sims)
-        mean_sim = sum(sims) / len(sims)
         spread = max(sims) - min(sims)
 
-        if mean_sim < self.min_mean_top1:
+        if top1 < self.min_mean_top1:
             warnings.append(
-                f"low mean similarity to references ({mean_sim:.3f} < {self.min_mean_top1}); "
+                f"low best-match similarity to references ({top1:.3f} < {self.min_mean_top1}); "
                 "consider a domain-specific embedding model or fine-tuning."
             )
         if spread > self.max_spread:

@@ -10,7 +10,7 @@ from typing import Any
 
 from langchain_core.vectorstores import VectorStore
 
-from ragfallback._compat import invoke_retriever
+from ragfallback._compat import content_hash, invoke_retriever
 
 
 def _retrieve_docs(vector_store: VectorStore, query: str, k: int) -> list[Any]:
@@ -23,7 +23,7 @@ def _doc_key(doc: Any) -> str:
         if k in md and md[k] is not None:
             return f"{k}:{md[k]}"
     content = getattr(doc, "page_content", str(doc)) or ""
-    return f"hash:{hash(content)}"
+    return f"hash:{content_hash(content)}"
 
 
 @dataclass
