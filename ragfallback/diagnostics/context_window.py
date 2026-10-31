@@ -13,18 +13,65 @@ except ImportError:  # pragma: no cover
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
-# Approximate **document** token budgets (leave headroom for system + answer).
+# Approximate **document** token budgets: roughly 75% of each model's usable input, leaving
+# headroom for the system prompt, the question and the answer. ``from_model_name`` reserves a
+# further ``reserve_ratio`` on top. Context sizes were checked against the providers' model
+# pages on CONTEXT_PRESETS_AS_OF:
+#   OpenAI     https://developers.openai.com/api/docs/models
+#   Anthropic  https://platform.claude.com/docs/en/build-with-claude/context-windows
+#   Mistral    https://docs.mistral.ai/getting-started/models/models_overview/
+# Keys are matched exactly, then by the longest prefix, so dated ids and ``-latest`` aliases
+# resolve to their family. A model that is not listed gets a family prefix's budget or
+# ``default``; both err small.
+CONTEXT_PRESETS_AS_OF = "2026-10-31"
+
 CONTEXT_WINDOW_TOKEN_PRESETS = {
-    "gpt-3.5-turbo": 3000,
-    "gpt-4": 7000,
-    "gpt-4-turbo": 100000,
+    # OpenAI: 1.05M-token context (922K max input)
+    "gpt-6": 700000,
+    "gpt-5.6-sol": 700000,
+    "gpt-5.5": 700000,
+    "gpt-5.4": 700000,
+    # OpenAI: 400K-token context (272K max input); also the fallback for other gpt-5 ids
+    "gpt-5.4-mini": 200000,
+    "gpt-5.4-nano": 200000,
+    "gpt-5": 200000,
+    # OpenAI: GPT-4.1 family, 1,047,576-token context
+    "gpt-4.1": 750000,
+    # OpenAI: 200K-token context
+    "o3": 150000,
+    "o4-mini": 150000,
+    # OpenAI: 128K-token context and legacy models
     "gpt-4o": 100000,
     "gpt-4o-mini": 100000,
+    "gpt-4-turbo": 100000,
+    "gpt-4": 7000,
+    "gpt-3.5-turbo": 3000,
+    # Anthropic: 1M-token context
+    "claude-fable": 750000,
+    "claude-mythos": 750000,
+    "claude-opus-5": 750000,
+    "claude-opus-4-8": 750000,
+    "claude-opus-4-7": 750000,
+    "claude-opus-4-6": 750000,
+    "claude-sonnet-5": 750000,
+    "claude-sonnet-4-6": 750000,
+    "claude-haiku-5": 750000,
+    # Anthropic: 200K-token context (Opus 4.5 and earlier, Sonnet 4.5 and earlier, Haiku 4.5)
+    "claude-opus-4": 150000,
+    "claude-sonnet-4": 150000,
+    "claude-haiku-4": 150000,
+    "claude-3": 150000,
     "claude-3-opus": 150000,
     "claude-3-sonnet": 150000,
     "claude-3-haiku": 150000,
-    "llama-3": 7500,
+    # Mistral (current generation)
+    "mistral-large": 750000,  # Mistral Large 4: 1M
+    "mistral-small": 190000,  # Mistral Small 4: 256K
+    "ministral": 190000,  # Ministral 3: 256K
+    "codestral": 96000,  # Codestral 25.08: 128K
+    # Generic fallbacks
     "mistral": 12000,
+    "llama-3": 7500,
     "default": 6000,
 }
 
@@ -114,10 +161,12 @@ class ContextWindowGuard:
         key = (model or "default").strip().lower()
         raw = CONTEXT_WINDOW_TOKEN_PRESETS.get(key)
         if raw is None:
-            for prefix, budget in CONTEXT_WINDOW_TOKEN_PRESETS.items():
-                if prefix != "default" and key.startswith(prefix):
-                    raw = budget
-                    break
+            # Longest prefix wins, so "gpt-4-turbo-2024-04-09" maps to gpt-4-turbo, not gpt-4.
+            prefixes = [
+                p for p in CONTEXT_WINDOW_TOKEN_PRESETS if p != "default" and key.startswith(p)
+            ]
+            if prefixes:
+                raw = CONTEXT_WINDOW_TOKEN_PRESETS[max(prefixes, key=len)]
         if raw is None:
             raw = CONTEXT_WINDOW_TOKEN_PRESETS["default"]
         budget = max(512, int(raw * (1.0 - max(0.0, min(0.5, reserve_ratio)))))

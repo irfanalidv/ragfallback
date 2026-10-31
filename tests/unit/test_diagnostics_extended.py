@@ -77,7 +77,9 @@ def test_context_window_presets() -> None:
     exact = ContextWindowGuard.from_model_name("gpt-4")
     assert exact.max_context_tokens == int(CONTEXT_WINDOW_TOKEN_PRESETS["gpt-4"] * 0.88)
     prefixed = ContextWindowGuard.from_model_name("mistral-large-latest", reserve_ratio=0)
-    assert prefixed.max_context_tokens == CONTEXT_WINDOW_TOKEN_PRESETS["mistral"]
+    assert prefixed.max_context_tokens == CONTEXT_WINDOW_TOKEN_PRESETS["mistral-large"]
+    generic = ContextWindowGuard.from_model_name("open-mistral-7b", reserve_ratio=0)
+    assert generic.max_context_tokens == CONTEXT_WINDOW_TOKEN_PRESETS["default"]
     unknown = ContextWindowGuard.from_model_name("some-new-model", reserve_ratio=0)
     assert unknown.max_context_tokens == CONTEXT_WINDOW_TOKEN_PRESETS["default"]
 
@@ -319,3 +321,33 @@ def test_auto_fix_folds_trailing_fragment_and_prefers_sentence_cuts() -> None:
     parts = _split_large_text(text, target=40, overlap=0)
     assert parts[0] == "First sentence is here."
     assert "".join(parts).replace(" ", "") == text.replace(" ", "")
+
+
+@pytest.mark.parametrize(
+    "model, preset_key",
+    [
+        ("gpt-4-turbo-2024-04-09", "gpt-4-turbo"),  # longest prefix, not "gpt-4"
+        ("gpt-4o-mini-2024-07-18", "gpt-4o-mini"),
+        ("gpt-4.1-mini", "gpt-4.1"),
+        ("gpt-5-mini", "gpt-5"),
+        ("gpt-5.4-mini", "gpt-5.4-mini"),
+        ("gpt-5.6-terra", "gpt-5"),  # not listed: falls back to the smaller gpt-5 budget
+        ("o3-mini", "o3"),
+        ("claude-opus-4-5", "claude-opus-4"),  # 200K
+        ("claude-opus-4-6", "claude-opus-4-6"),  # 1M
+        ("claude-sonnet-4-5-20250929", "claude-sonnet-4"),
+        ("claude-sonnet-5-5", "claude-sonnet-5"),
+        ("mistral-small-latest", "mistral-small"),
+        ("ministral-8b-2512", "ministral"),
+        ("codestral-latest", "codestral"),
+    ],
+)
+def test_context_presets_resolve_by_longest_prefix(model: str, preset_key: str) -> None:
+    guard = ContextWindowGuard.from_model_name(model, reserve_ratio=0)
+    assert guard.max_context_tokens == CONTEXT_WINDOW_TOKEN_PRESETS[preset_key]
+
+
+def test_context_presets_are_dated() -> None:
+    from ragfallback.diagnostics.context_window import CONTEXT_PRESETS_AS_OF
+
+    assert CONTEXT_PRESETS_AS_OF[4] == "-" and len(CONTEXT_PRESETS_AS_OF) == 10

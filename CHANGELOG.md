@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-10-31
+
+### Fixed
+- `ContextWindowGuard.from_model_name` presets were out of date (for example every Mistral
+  model got a 12K budget, and GPT-5/4.1 or Claude 4.6+ fell back to the 6K default). Presets
+  now come from the providers' published context windows (dated by `CONTEXT_PRESETS_AS_OF`,
+  sources in the module) and cover OpenAI GPT-6/5.x/5/4.1, o3/o4-mini, Claude 1M and 200K
+  models, and Mistral Large 4, Small 4, Ministral 3 and Codestral.
+- Prefix matching picked the first matching key instead of the longest, so
+  `gpt-4-turbo-2024-04-09` got the 8K `gpt-4` budget. The longest prefix now wins.
+
 ## [2.4.1] - 2026-10-31
 
 ### Fixed
