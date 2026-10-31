@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-31
+
+### Fixed
+- `CostTracker` priced every operation at gpt-4 rates regardless of the
+  `model` passed to `record_tokens()`. Costs are now computed per call with
+  that model's price (exact match, then longest prefix, so
+  `gpt-4o-mini-2024-07-18` uses `gpt-4o-mini`). Tokens recorded outside
+  `track()` are committed under `"untracked"` instead of being dropped.
+- `ConfidenceScorer` heuristic zeroed any answer containing the letter "x"
+  (substring match on the `"x"` placeholder), e.g. "Texas" or "expires".
+- `create_faiss_vector_store(persist_directory=...)` silently rebuilt and
+  overwrote existing indexes because `FAISS.load_local()` now requires
+  `allow_dangerous_deserialization`; reloading is an explicit opt-in via the
+  new `allow_dangerous_deserialization=True` argument, and the rebuild path
+  logs a warning.
+- `RetrievalHealthCheck` and `GoldenRunner` derived ids for documents without
+  metadata ids from the builtin `hash()`, which changes between processes;
+  they now use a SHA-256 prefix.
+- `EmbeddingQualityProbe` compared the mean similarity against
+  `min_mean_top1`; it now checks the best match, as documented.
+- `RAGEvaluator` no longer hides a failing LLM judge behind a second
+  `llm(prompt)` call; `faithfulness_score()` logs judge failures.
+- `GoldenRunner` no longer re-runs a query on the sync path when an
+  `AttributeError` is raised inside `aquery_with_fallback`.
+- Retrieval code no longer calls `BaseRetriever.get_relevant_documents()`
+  (removed in langchain-core 1.x) except as a duck-typed legacy fallback.
+- Async paths use `asyncio.get_running_loop()`; timestamps use timezone-aware
+  `datetime.now(timezone.utc)` instead of the deprecated `utcnow()`.
+- Optional-dependency `ImportError`s are chained and no longer mask errors
+  raised by the constructor itself.
+
+### Changed
+- `ChunkQualityChecker.auto_fix()` folds a short trailing fragment into its
+  neighbour and prefers sentence boundaries when splitting long chunks.
+- Tooling: ruff (lint + format) replaces black/isort/flake8; mypy runs with
+  `disallow_untyped_defs` and is now a blocking CI check; single `ci.yml`
+  workflow with a coverage gate (85%); CodeQL scanning added. The `dev`
+  extra now includes ruff and mypy.
+- README rewritten: verified quickstart, architecture diagram, configuration
+  and API tables, corrected snippets (several referenced parameters and
+  methods that do not exist, e.g. `CostTracker(budget_usd=...)`,
+  `tracker.record(...)`, `retriever.retrieve(...)`).
+
+### Added
+- Four offline, key-free examples on the bundled sample KB
+  (`examples/offline_*.py`), exercised by the test suite.
+- Unit-test coverage raised from 54% to 86%.
+
 ## [2.3.0] - 2026-10-31
 
 ### Changed

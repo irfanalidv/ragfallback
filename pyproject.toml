@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ragfallback"
-version = "2.3.0"
+version = "2.4.0"
 description = "Prevents silent RAG failures — chunk quality, retrieval fallback, adaptive querying, and answer evaluation in one library."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -99,6 +99,8 @@ dev = [
     "pytest-cov>=4.1.0",
     "rank_bm25>=0.2.2",
     "faiss-cpu>=1.7.4",
+    "ruff>=0.17",
+    "mypy>=1.11",
     "build>=1.0",
     "twine>=5.0",
     "pre-commit>=3.5",

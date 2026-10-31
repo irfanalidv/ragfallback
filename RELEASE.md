@@ -25,16 +25,16 @@ previous manual `twine upload` flow.
 
 ```bash
 # 1. Bump the version in two places (must match exactly)
-#    - pyproject.toml          -> [project] version = "2.3.0"
-#    - ragfallback/__init__.py -> __version__ = "2.3.0"
+#    - pyproject.toml          -> [project] version = "2.4.0"
+#    - ragfallback/__init__.py -> __version__ = "2.4.0"
 
 # 2. Update CHANGELOG.md — move [Unreleased] items under a new
-#    ## [2.3.0] - YYYY-MM-DD heading
+#    ## [2.4.0] - YYYY-MM-DD heading
 
 # 3. Commit, tag, push
 git add pyproject.toml ragfallback/__init__.py CHANGELOG.md
-git commit -m "release: v2.3.0"
-git tag v2.3.0
+git commit -m "release: v2.4.0"
+git tag v2.4.0
 git push origin main --tags
 ```
 
@@ -48,7 +48,7 @@ use "Generate release notes").
 ## If something goes wrong
 
 - **Tag/version mismatch**: the workflow fails before publishing — fix the
-  version, delete the tag (`git tag -d v2.3.0 && git push origin :v2.3.0`),
+  version, delete the tag (`git tag -d v2.4.0 && git push origin :v2.4.0`),
   and re-tag.
 - **Need to yank a bad release**: do this on PyPI directly (Manage →
   Releases → Yank). Trusted Publishing has no effect on yanking.

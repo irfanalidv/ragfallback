@@ -58,7 +58,7 @@ Modules:
 pip install ragfallback[chroma,huggingface]
 
 ## Version
-v2.3.0
+v2.4.0
 
 ## History
 - v2.0.2 image had two labeling bugs (StaleIndexDetector mislabeled UC-8,
